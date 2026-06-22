@@ -13,11 +13,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super(options);
   }
   async validate(payload: any) {
-    const { userId, role,email } = payload;
+    const { userId, role,email,city,department } = payload;
     return {
       userId,
       role,
-      email
+      email,
+      city,
+      department
     };
   }
 }

@@ -1,8 +1,8 @@
 // dto/create-user.dto.ts
 import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from "class-validator";
-import { Role, City } from "../../common/enum/enum";
+import { Role, City, Department } from "../../common/enum/enum";
 
-export class CreateUserDto{
+export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
   fullName!: string;
@@ -25,9 +25,8 @@ export class CreateUserDto{
   city!: City;
 
   @IsOptional()
-  @IsString()
-  department?: string;
-
+  @IsEnum(Department)
+  department?: Department;
   @IsNotEmpty()
   @IsString()
   jobTitle!: string;

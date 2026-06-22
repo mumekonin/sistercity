@@ -6,6 +6,7 @@ import { CreateUserDto, LoginUserDto } from "../dto/users.dto";
 import * as bcrypt from "bcrypt";
 import { UserResponse } from "../response/users.response";
 import { commonUtils } from "../../common/utils/utils";
+import { Role } from "src/common/enum/enum";
 @Injectable()
 export class UserService {
   constructor(
@@ -66,7 +67,9 @@ export class UserService {
     const jwtData = {
       userId: user._id.toString(), 
       role: user.role,
-      email:user.email             
+      email:user.email,
+      city:user.city,
+      department:user.department,            
     }
     const generateJwtToken = commonUtils.generateJwtToken(jwtData);
 
@@ -84,4 +87,56 @@ export class UserService {
     await user.save();
     return { message: 'user logged out successfully' };
   }
+ //GET all users
+async getAllUsers(currentUser: any): Promise<UserResponse[]> {
+  let users;
+
+  const excludeFilter = {
+    _id: { $ne: currentUser.userId},
+    role: { $ne: Role.SUPER_ADMIN },
+  };
+
+  if (currentUser.role === Role.SUPER_ADMIN) {
+    users = await this.userModel
+      .find({ _id: { $ne: currentUser.userId  } })
+      .select('-password')
+      .lean();
+  }
+
+  if (currentUser.role === Role.CITY_ADMIN) {
+    users = await this.userModel
+      .find({ city: currentUser.city, ...excludeFilter })
+      .select('-password')
+      .lean();
+  }
+
+  if (currentUser.role === Role.DEPT_OFFICER) {
+    users = await this.userModel
+      .find({ city: currentUser.city, department: currentUser.department, ...excludeFilter })
+      .select('-password')
+      .lean();
+  }
+
+  if (!users) return [];
+
+  const usersResponse: UserResponse[] = users.map((user) => {
+    return {
+      id: user._id.toString(),
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      city: user.city,
+      department: user.department,
+      jobTitle: user.jobTitle,
+      phone: user.phone,
+      isActive: user.isActive,
+      isLocked: user.isLocked,
+      failedLoginAttempts: user.failedLoginAttempts,
+      lastLogin: user.lastLogin,
+      createdAt: user.createdAt,
+    };
+  });
+
+  return usersResponse;
+}
 }

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
-import { Role, City } from "../../common/enum/enum";
+import { Role, City,Department } from "../../common/enum/enum";
 @Schema({ timestamps: true })
 export class User extends Document {
   @Prop({ required: true })
@@ -18,8 +18,8 @@ export class User extends Document {
   @Prop({ required: true, enum: City })
   city!: City;
 
-  @Prop()
-  department?: string;
+  @Prop({ enum: Department })
+  department?: Department;
 
   @Prop({ required: true })
   jobTitle!: string;
@@ -38,9 +38,9 @@ export class User extends Document {
 
   @Prop()
   lastLogin?: Date;
-  
-  @Prop({default:null,type:String})
-  refreshToken!: string| null;
+
+  @Prop({ default: null, type: String })
+  refreshToken!: string | null;
 }
 
 export const userSchema = SchemaFactory.createForClass(User);
