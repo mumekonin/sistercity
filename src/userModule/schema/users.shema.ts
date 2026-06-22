@@ -27,6 +27,9 @@ export class User extends Document {
   @Prop()
   phone?: string;
 
+  @Prop({ default: true })
+  isActive!: boolean;
+  
   @Prop({ default: null, type: String })
   refreshToken!: string | null;
 }

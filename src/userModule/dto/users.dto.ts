@@ -53,5 +53,5 @@ export class UpdateUserDto {
   phone?: string;
   city?: City;
   role?: Role;
-
+  isActive?: boolean;
 }

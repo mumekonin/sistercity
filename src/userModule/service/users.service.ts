@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, UnauthorizedException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { User } from "../schema/users.shema";
 import { Model } from "mongoose";
@@ -64,6 +64,9 @@ export class UserService {
     if (!isPasswordValid) {
       throw new BadRequestException('invalid password');
     }
+    if (!user.isActive) {
+      throw new UnauthorizedException('Your account has been deactivated.');
+    }
     const jwtData = {
       userId: user._id.toString(),
       role: user.role,
@@ -83,6 +86,7 @@ export class UserService {
     if (!user) {
       throw new BadRequestException('user not found');
     }
+
     user.refreshToken = null;
     await user.save();
     return { message: 'user logged out successfully' };
@@ -98,21 +102,21 @@ export class UserService {
 
     if (currentUser.role === Role.SUPER_ADMIN) {
       users = await this.userModel
-        .find({ _id: { $ne: currentUser.userId } })
+        .find({ _id: { $ne: currentUser.userId }, isActive: true })
         .select('-password')
         .lean();
     }
 
     if (currentUser.role === Role.CITY_ADMIN) {
       users = await this.userModel
-        .find({ city: currentUser.city, ...excludeFilter })
+        .find({ city: currentUser.city, isActive: true, ...excludeFilter })
         .select('-password')
         .lean();
     }
 
     if (currentUser.role === Role.DEPT_OFFICER) {
       users = await this.userModel
-        .find({ city: currentUser.city, department: currentUser.department, ...excludeFilter })
+        .find({ city: currentUser.city, department: currentUser.department, isActive: true, ...excludeFilter })
         .select('-password')
         .lean();
     }
@@ -175,7 +179,9 @@ export class UserService {
     if (updateUserDto.role) {
       targetUser.role = updateUserDto.role;
     }
-
+    if (updateUserDto.isActive !== undefined) {
+      targetUser.isActive = updateUserDto.isActive;
+    }
     const updatedUser = await targetUser.save();
 
     const userResponse: UserResponse = {
@@ -187,6 +193,7 @@ export class UserService {
       department: updatedUser.department,
       jobTitle: updatedUser.jobTitle,
       phone: updatedUser.phone,
+      isActive:updatedUser.isActive
     };
 
     return userResponse;
