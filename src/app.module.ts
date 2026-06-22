@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from "./userModule/users.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-
+import {JwtStrategy}  from "./common/guards/jwt.strategy";
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -18,6 +18,6 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
     UsersModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService , JwtStrategy],
 })
 export class AppModule {}
