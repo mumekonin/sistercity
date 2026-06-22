@@ -45,3 +45,13 @@ export class LoginUserDto {
   @IsString()
   password!: string;
 }
+export class UpdateUserDto {
+  fullName?: string;
+  email?: string;
+  jobTitle?: string;
+  department?: Department;
+  phone?: string;
+  city?: City;
+  role?: Role;
+
+}

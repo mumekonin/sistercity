@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Req, Get } from "@nestjs/common";
+import { Controller, Post, Patch, Body, Req, Get, Param } from "@nestjs/common";
 import { UserService } from "../service/users.service";
-import { CreateUserDto, LoginUserDto } from "../dto/users.dto";
+import { CreateUserDto, LoginUserDto, UpdateUserDto } from "../dto/users.dto";
 import { JwtAuthGuard } from "src/common/guards/jwtauth.gourds";
 import { UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
@@ -33,8 +33,14 @@ export class UsersConteroller {
 
   @Get('/allUsersByRole')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN , Role.DEPT_OFFICER)
+  @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN, Role.DEPT_OFFICER)
   getAllUsers(@Req() req) {
     return this.userService.getAllUsers(req.user);
+  }
+  @Patch('/updateUser/:id')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
+  updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @Req() req: any) {
+    return this.userService.updateUser(id, updateUserDto, req.user);
   }
 }
