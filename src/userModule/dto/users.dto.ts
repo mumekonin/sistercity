@@ -36,3 +36,13 @@ export class CreateUserDto{
   @IsString()
   phone?: string;
 }
+
+export class LoginUserDto {
+  @IsNotEmpty()
+  @IsEmail()
+  email!: string;
+
+  @IsNotEmpty()
+  @IsString()
+  password!: string;
+}
