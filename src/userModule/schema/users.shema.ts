@@ -38,6 +38,9 @@ export class User extends Document {
 
   @Prop()
   lastLogin?: Date;
+  
+  @Prop({default:null,type:String})
+  refreshToken!: string| null;
 }
 
 export const userSchema = SchemaFactory.createForClass(User);

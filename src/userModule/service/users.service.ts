@@ -74,4 +74,14 @@ export class UserService {
         token:generateJwtToken
     }
   }
+//logout user
+ async logoutUser(currentUserId: string) {
+    const user = await this.userModel.findById(currentUserId);
+    if (!user) {
+      throw new BadRequestException('user not found');
+    }
+    user.refreshToken = null;
+    await user.save();
+    return { message: 'user logged out successfully' };
+  }
 }
