@@ -12,7 +12,7 @@ export class UsersConteroller {
   constructor(
     private readonly userService: UserService,
   ) { }
-  @Post("/register")
+  @Post("/create")
   async createUser(@Body() createUserDto: CreateUserDto) {
     const reuslt = await this.userService.createUser(createUserDto);
     return reuslt;

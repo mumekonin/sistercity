@@ -1,8 +1,10 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
-import { Role, City,Department } from "../../common/enum/enum";
+import { Role, City, Department } from "../../common/enum/enum";
+
 @Schema({ timestamps: true })
 export class User extends Document {
+
   @Prop({ required: true })
   fullName!: string;
 
@@ -29,9 +31,19 @@ export class User extends Document {
 
   @Prop({ default: true })
   isActive!: boolean;
-  
+
+  @Prop({ default: 0 })
+  failedLoginAttempts!: number;
+
+  @Prop({ default: null, type: Date })
+  lockUntil!: Date | null;
+
+  @Prop({ default: null, type: Date })
+  lastLogin!: Date | null;
+
   @Prop({ default: null, type: String })
   refreshToken!: string | null;
+
 }
 
 export const userSchema = SchemaFactory.createForClass(User);

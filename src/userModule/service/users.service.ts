@@ -56,29 +56,84 @@ export class UserService {
   //login user
   async loginUser(loginDto: LoginUserDto) {
     const user = await this.userModel.findOne({ email: loginDto.email });
+
     if (!user) {
-      throw new BadRequestException('username is not found');
-    }
-    //compare password
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-    if (!isPasswordValid) {
-      throw new BadRequestException('invalid password');
+      throw new NotFoundException('No account found with this email');
     }
     if (!user.isActive) {
-      throw new UnauthorizedException('Your account has been deactivated.');
+      throw new UnauthorizedException(
+        'Your account has been deactivated. Contact your administrator.'
+      );
     }
+
+    // Check if account is currently locked 
+    const now = new Date();
+
+    if (user.lockUntil && user.lockUntil > now) {
+      const msLeft = user.lockUntil.getTime() - now.getTime();
+      const minutesLeft = Math.ceil(msLeft / 60000);
+
+      throw new UnauthorizedException(
+        `Your account is locked. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`
+      );
+    }
+
+    // If lock has expired, reset automatically 
+    if (user.lockUntil && user.lockUntil <= now) {
+      user.lockUntil = null;
+      user.failedLoginAttempts = 0;
+
+    }
+
+    //Check password 
+    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+
+    if (!isPasswordValid) {
+      user.failedLoginAttempts += 1;
+
+      if (user.failedLoginAttempts >= 5) {
+        user.lockUntil = new Date(now.getTime() + 15 * 60 * 1000);
+        await user.save();
+
+        throw new UnauthorizedException(
+          'Too many failed attempts. Your account is locked for 15 minutes.'
+        );
+      }
+
+      await user.save();
+
+      const attemptsLeft = 5 - user.failedLoginAttempts;
+      throw new BadRequestException(
+        `Invalid password. ${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining before account is locked.`
+      );
+    }
+    user.failedLoginAttempts = 0;
+    user.lockUntil = null;
+    user.lastLogin = now;
+    await user.save();
+
     const jwtData = {
       userId: user._id.toString(),
       role: user.role,
       email: user.email,
       city: user.city,
       department: user.department,
-    }
-    const generateJwtToken = commonUtils.generateJwtToken(jwtData);
+    };
+
+    const token = commonUtils.generateJwtToken(jwtData);
 
     return {
-      token: generateJwtToken
-    }
+      token,
+      user: {
+        id: user._id.toString(),
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        city: user.city,
+        department: user.department,
+        jobTitle: user.jobTitle,
+      }
+    };
   }
   //logout user
   async logoutUser(currentUserId: string) {
@@ -193,7 +248,7 @@ export class UserService {
       department: updatedUser.department,
       jobTitle: updatedUser.jobTitle,
       phone: updatedUser.phone,
-      isActive:updatedUser.isActive
+      isActive: updatedUser.isActive
     };
 
     return userResponse;
