@@ -1,7 +1,6 @@
 import { Controller, Post, Patch, Body, Req, Get, Param } from "@nestjs/common";
 import { UserService } from "../service/users.service";
 import { CreateUserDto, LoginUserDto, UpdateUserDto } from "../dto/users.dto";
-import { JwtAuthGuard } from "src/common/guards/jwtauth.gourds";
 import { UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { DbRolesGuard } from "src/common/guards/roles.guard";
@@ -17,20 +16,6 @@ export class UsersConteroller {
     const reuslt = await this.userService.createUser(createUserDto);
     return reuslt;
   }
-  @Post("/login")
-  async loginUser(@Body() loginDto: LoginUserDto) {
-    const result = await this.userService.loginUser(loginDto);
-    return result;
-  }
-
-  @JwtAuthGuard()
-  @Post('/logout')
-  async logoutUser(@Req() req) {
-    const userId = req.user.userId;
-    const result = await this.userService.logoutUser(userId);
-    return result;
-  }
-
   @Get('/allUsersByRole')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN, Role.DEPT_OFFICER)
