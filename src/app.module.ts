@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from "./userModule/users.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import {JwtStrategy}  from "./common/guards/jwt.strategy";
+import { CityProfileModule } from './cityProfile/cityProfile.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -16,6 +17,7 @@ import {JwtStrategy}  from "./common/guards/jwt.strategy";
       }),
     }),
     UsersModule,
+    CityProfileModule
   ],
   controllers: [AppController],
   providers: [AppService , JwtStrategy],
