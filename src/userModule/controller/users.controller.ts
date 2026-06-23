@@ -11,14 +11,15 @@ export class UsersConteroller {
   constructor(
     private readonly userService: UserService,
   ) { }
-  @Post("/create")
-  async createUser(@Body() createUserDto: CreateUserDto) {
-    const reuslt = await this.userService.createUser(createUserDto);
-    return reuslt;
+  @Post('/create')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.CITY_ADMIN)
+  async createUser(@Body() createUserDto: CreateUserDto, @Req() req: any) {
+    return this.userService.createUser(createUserDto, req.user);
   }
   @Get('/allUsersByRole')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN, Role.DEPT_OFFICER)
+  @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
   getAllUsers(@Req() req) {
     return this.userService.getAllUsers(req.user);
   }

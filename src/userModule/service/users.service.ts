@@ -14,14 +14,56 @@ export class UserService {
     private readonly userModel: Model<User>,
   ) { }
 
-  async createUser(createUserDto: CreateUserDto) {
-    const existingUser = await this.userModel.findOne({ email: createUserDto.email });
+  async createUser(createUserDto: CreateUserDto, currentUser: any) {
 
-    if (existingUser) {
-      throw new BadRequestException("user already exists with the same email");
+    if (currentUser.role === Role.CITY_ADMIN) {
+
+      if (
+        createUserDto.role === Role.CITY_ADMIN ||
+        createUserDto.role === Role.SUPER_ADMIN
+      ) {
+        throw new ForbiddenException(
+          'City Admin can only create Department Officers'
+        );
+      }
+
+      if (createUserDto.city !== currentUser.city) {
+        throw new ForbiddenException(
+          'You can only create users for your own city'
+        );
+      }
     }
 
-    const hashedPwd = await bcrypt.hash(createUserDto.password, 10)
+    if (currentUser.role === Role.SUPER_ADMIN) {
+
+      if (createUserDto.role === Role.SUPER_ADMIN) {
+        throw new ForbiddenException(
+          'Super Admin cannot create another Super Admin'
+        );
+      }
+    }
+
+    if (
+      createUserDto.role === Role.DEPT_OFFICER &&
+      !createUserDto.department
+    ) {
+      throw new BadRequestException(
+        'Department is required for Department Officer'
+      );
+    }
+
+    const existingUser = await this.userModel.findOne({
+      email: createUserDto.email
+    });
+
+    if (existingUser) {
+      throw new BadRequestException(
+        'A user already exists with this email'
+      );
+    }
+
+    const hashedPwd = await bcrypt.hash(createUserDto.password, 10);
+
     const newUser = new this.userModel({
       fullName: createUserDto.fullName,
       email: createUserDto.email,
@@ -31,10 +73,9 @@ export class UserService {
       department: createUserDto.department,
       jobTitle: createUserDto.jobTitle,
       phone: createUserDto.phone,
-    })
+    });
 
     const savedUser = await newUser.save();
-
     const userResponse: UserResponse = {
       id: savedUser._id.toString(),
       fullName: savedUser.fullName,
@@ -44,8 +85,8 @@ export class UserService {
       department: savedUser.department,
       jobTitle: savedUser.jobTitle,
       phone: savedUser.phone,
+    };
 
-    }
     return userResponse;
   }
 
@@ -161,13 +202,6 @@ export class UserService {
     if (currentUser.role === Role.CITY_ADMIN) {
       users = await this.userModel
         .find({ city: currentUser.city, isActive: true, ...excludeFilter })
-        .select('-password')
-        .lean();
-    }
-
-    if (currentUser.role === Role.DEPT_OFFICER) {
-      users = await this.userModel
-        .find({ city: currentUser.city, department: currentUser.department, isActive: true, ...excludeFilter })
         .select('-password')
         .lean();
     }
