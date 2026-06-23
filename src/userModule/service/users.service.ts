@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException,
 import { InjectModel } from "@nestjs/mongoose";
 import { User } from "../schema/users.shema";
 import { Model } from "mongoose";
-import { CreateUserDto, LoginUserDto, UpdateUserDto } from "../dto/users.dto";
+import { CreateUserDto, LoginUserDto, UpdateUserDto, ChangePasswordDto } from "../dto/users.dto";
 import * as bcrypt from "bcrypt";
 import { UserResponse } from "../response/users.response";
 import { commonUtils } from "../../common/utils/utils";
@@ -15,16 +15,13 @@ export class UserService {
   ) { }
 
   async createUser(createUserDto: CreateUserDto) {
-    //check is the user already exists with the same email
     const existingUser = await this.userModel.findOne({ email: createUserDto.email });
 
     if (existingUser) {
       throw new BadRequestException("user already exists with the same email");
     }
 
-    //hashed password
     const hashedPwd = await bcrypt.hash(createUserDto.password, 10)
-    //prepare instance to save it db
     const newUser = new this.userModel({
       fullName: createUserDto.fullName,
       email: createUserDto.email,
@@ -38,7 +35,6 @@ export class UserService {
 
     const savedUser = await newUser.save();
 
-    //prepare response object
     const userResponse: UserResponse = {
       id: savedUser._id.toString(),
       fullName: savedUser.fullName,
@@ -211,7 +207,6 @@ export class UserService {
       throw new ForbiddenException('Only SUPER_ADMIN can change roles');
     }
 
-    // profile fields
     if (updateUserDto.fullName) {
       targetUser.fullName = updateUserDto.fullName;
     }
@@ -252,5 +247,49 @@ export class UserService {
     };
 
     return userResponse;
+  }
+  async changePassword(currentUserId: string, changePasswordDto: ChangePasswordDto) {
+
+    const user = await this.userModel.findById(currentUserId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException(
+        'Current password is incorrect. Please enter your login password.'
+      );
+    }
+
+    const isSamePassword = await bcrypt.compare(
+      changePasswordDto.newPassword,
+      user.password
+    );
+
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password cannot be the same as your current password'
+      );
+    }
+
+    if (changePasswordDto.newPassword !== changePasswordDto.confirmNewPassword) {
+      throw new BadRequestException(
+        'New password and confirm password do not match'
+      );
+    }
+
+    user.password = await bcrypt.hash(changePasswordDto.newPassword, 10);
+    user.refreshToken = null;
+    await user.save();
+
+    return {
+      message: 'Password changed successfully. Please log in again.'
+    };
   }
 }
