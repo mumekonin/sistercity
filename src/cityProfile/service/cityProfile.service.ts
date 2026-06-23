@@ -1,10 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Model } from "mongoose";
 import { InjectModel } from "@nestjs/mongoose";
 import { CityProfile } from "../schema/cityProfile.schema";
-import { CreateCityProfileDto } from "../dto/cityProfile.dto";
+import { CreateCityProfileDto, UpdateCityProfileDto } from "../dto/cityProfile.dto";
 import { CityProfileResponse } from "../response/cityProfile.response";
 import { ConflictException } from "@nestjs/common";
+import { Role } from "src/common/enum/enum";
 @Injectable()
 export class CityProfileService {
   constructor(
@@ -63,6 +64,120 @@ export class CityProfileService {
       },
       createdAt: saved.createdAt,
       updatedAt: saved.updatedAt,
+    };
+
+    return cityProfileResponse;
+  }
+
+  async updateCityProfile(cityName: string, updateDto: UpdateCityProfileDto, currentUser: any,): Promise<CityProfileResponse> {
+    const profile = await this.cityProfileModel.findOne({ cityName });
+    if (!profile) throw new NotFoundException(`Profile for ${cityName} not found`);
+
+    if (currentUser.role === Role.CITY_ADMIN && currentUser.city !== cityName) {
+      throw new ForbiddenException('You can only update your own city profile');
+    }
+
+    // basicInfo 
+    if (updateDto.basicInfo?.name) {
+      profile.basicInfo.name = updateDto.basicInfo.name;
+    }
+    if (updateDto.basicInfo?.region) {
+      profile.basicInfo.region = updateDto.basicInfo.region;
+    }
+    if (updateDto.basicInfo?.yearEstablished) {
+      profile.basicInfo.yearEstablished = updateDto.basicInfo.yearEstablished;
+    }
+    if (updateDto.basicInfo?.landAreaSm2) {
+      profile.basicInfo.landAreaSm2 = updateDto.basicInfo.landAreaSm2;
+    }
+    if (updateDto.basicInfo?.officialWebsite) {
+      profile.basicInfo.officialWebsite = updateDto.basicInfo.officialWebsite;
+    }
+    // population fields
+    if (updateDto.population?.total) {
+      profile.population.total = updateDto.population.total;
+    }
+    if (updateDto.population?.male) {
+      profile.population.male = updateDto.population.male;
+    }
+    if (updateDto.population?.female) {
+      profile.population.female = updateDto.population.female;
+    }
+    if (updateDto.population?.youth) {
+      profile.population.youth = updateDto.population.youth;
+    }
+    if (updateDto.population?.lastUpdated) {
+      profile.population.lastUpdated = updateDto.population.lastUpdated;
+    }
+    // replace full arrays when sent
+    if (updateDto.keyOfficials) {
+      profile.keyOfficials = updateDto.keyOfficials;
+    }
+    if (updateDto.departments) {
+      profile.departments = updateDto.departments;
+    }
+    if (updateDto.areasOfFocus) {
+      profile.areasOfFocus = updateDto.areasOfFocus;
+    }
+    // contactInfo fields
+    if (updateDto.contactInfo?.address) {
+      profile.contactInfo.address = updateDto.contactInfo.address;
+    }
+    if (updateDto.contactInfo?.phone) {
+      profile.contactInfo.phone = updateDto.contactInfo.phone;
+    }
+    if (updateDto.contactInfo?.email) {
+      profile.contactInfo.email = updateDto.contactInfo.email;
+    }
+    // partnershipHistory fields
+    if (updateDto.partnershipHistory?.agreementDate) {
+      profile.partnershipHistory.agreementDate = updateDto.partnershipHistory.agreementDate;
+    
+    }if (updateDto.partnershipHistory?.summary) {
+      profile.partnershipHistory.summary = updateDto.partnershipHistory.summary;
+    }
+    const updated = await profile.save();
+
+    const cityProfileResponse: CityProfileResponse = {
+      id: updated._id.toString(),
+      city: updated.city,
+      basicInfo: {
+        name: updated.basicInfo.name,
+        region: updated.basicInfo.region,
+        yearEstablished: updated.basicInfo.yearEstablished,
+        landAreaSm2: updated.basicInfo.landAreaSm2,
+        officialWebsite: updated.basicInfo.officialWebsite,
+      },
+      population: {
+        total: updated.population.total,
+        male: updated.population.male,
+        female: updated.population.female,
+        youth: updated.population.youth,
+        lastUpdated: updated.population.lastUpdated,
+      },
+      keyOfficials: updated.keyOfficials.map((official: any) => ({
+        name: official.name,
+        title: official.title,
+        email: official.email,
+        phone: official.phone,
+      })),
+      departments: updated.departments.map((dept: any) => ({
+        name: dept.name,
+        headName: dept.headName,
+        headEmail: dept.headEmail,
+      })),
+      areasOfFocus: updated.areasOfFocus,
+      contactInfo: {
+        address: updated.contactInfo.address,
+        phone: updated.contactInfo.phone,
+        email: updated.contactInfo.email,
+      },
+      partnershipHistory: {
+        agreementDate: updated.partnershipHistory.agreementDate,
+        summary: updated.partnershipHistory.summary,
+      },
+      updatedAt: updated.updatedAt,
+      createdAt: updated.createdAt,
     };
 
     return cityProfileResponse;

@@ -141,3 +141,144 @@ export class CreateCityProfileDto {
   @Type(() => PartnershipHistoryDto)
   partnershipHistory!: PartnershipHistoryDto;
 }
+export class UpdateBasicInfoDto {
+  @IsOptional()
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  region?: string;
+
+  @IsOptional()
+  @IsNumber()
+  yearEstablished?: number;
+
+  @IsOptional()
+  @IsNumber()
+  landAreaSm2?: number;
+
+  @IsOptional()
+  @IsUrl()
+  officialWebsite?: string;
+
+}
+
+export class UpdatePopulationDto {
+  @IsOptional()
+  @IsNumber()
+  total?: number;
+
+  @IsOptional()
+  @IsNumber()
+  male?: number;
+
+  @IsOptional()
+  @IsNumber()
+  female?: number;
+
+  @IsOptional()
+  @IsNumber()
+  youth?: number;
+
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  lastUpdated?: Date;
+}
+
+export class UpdateKeyOfficialDto {
+  @IsOptional()
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+}
+
+export class UpdateDepartmentDto {
+  @IsOptional()
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  headName?: string;
+
+  @IsOptional()
+  @IsEmail()
+  headEmail?: string;
+}
+
+export class UpdateContactInfoDto {
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+}
+
+export class UpdatePartnershipHistoryDto {
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  agreementDate?: Date;
+
+  @IsOptional()
+  @IsString()
+  summary?: string;
+}
+
+export class UpdateCityProfileDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdateBasicInfoDto)
+  basicInfo?: UpdateBasicInfoDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdatePopulationDto)
+  population?: UpdatePopulationDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateKeyOfficialDto)
+  keyOfficials?: UpdateKeyOfficialDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateDepartmentDto)
+  departments?: UpdateDepartmentDto[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  areasOfFocus?: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdateContactInfoDto)
+  contactInfo?: UpdateContactInfoDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdatePartnershipHistoryDto)
+  partnershipHistory?: UpdatePartnershipHistoryDto;
+}

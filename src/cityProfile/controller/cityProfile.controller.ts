@@ -6,12 +6,12 @@ import { DbRolesGuard } from "src/common/guards/roles.guard";
 import { Roles } from "src/common/decorator/role.decorator";
 import { Role } from "../../common/enum/enum";
 import { CreateCityProfileDto } from "../dto/cityProfile.dto";
-@Controller("/cities")
+@Controller("/cities/")
 export class CityProfileController {
   constructor(
     private readonly cityProfileService: CityProfileService
   ) {}
-  @Post()
+  @Post("/createProfile")
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.SUPER_ADMIN)
   async createCityProfile(@Body() createCityProfileDto: CreateCityProfileDto,) {
