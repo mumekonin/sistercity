@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { Project } from '../schema/projects.schema';
 import { CreateProjectDto } from '../dto/projects.dto';
 import { ProjectResponse } from '../response/projects..response';
-import { ProjectStatus, City } from '../../common/enum/enum';
+import { ProjectStatus, Role } from '../../common/enum/enum';
 
 @Injectable()
 export class ProjectsService {
@@ -100,5 +100,26 @@ export class ProjectsService {
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     };
+  }
+
+  async getProjectById(id: string, currentUser: any): Promise<ProjectResponse> {
+    const project = await this.projectModel.findById(id).lean();
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      const isAssigned =
+        project.adama?.department === currentUser.department ||
+        project.aurora?.department === currentUser.department;
+      if (!isAssigned) {
+        throw new ForbiddenException('You are not assigned to this project');
+      }
+    }
+
+    if (currentUser.role === Role.CITY_ADMIN && project.proposedBy !== currentUser.city) {
+      throw new ForbiddenException('You can only view your own city projects');
+    }
+
+    return this.mapToResponse(project);
   }
 }
