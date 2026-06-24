@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, Param, Put,Get } from "@nestjs/common";
+import { Controller, Post, Body, Req, Param, Put, Get } from "@nestjs/common";
 import { CityProfileService } from "../service/cityProfile.service";
 import { UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
@@ -18,14 +18,18 @@ export class CityProfileController {
   async createCityProfile(@Body() createCityProfileDto: CreateCityProfileDto,) {
     return this.cityProfileService.createCityProfile(createCityProfileDto);
   }
-  @Put('/updateCityProfile/:id')
+  @Put('/updateCityProfile/:cityName')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
-  async updateCityProfile(@Param('id') id: string, @Body() updateCityProfileDto: UpdateCityProfileDto, @Req() req: any,): Promise<CityProfileResponse> {
-    return this.cityProfileService.updateCityProfile(id, updateCityProfileDto, req.user);
+  async updateCityProfile(@Param('cityName') cityName: string, @Body() updateCityProfileDto: UpdateCityProfileDto, @Req() req: any,): Promise<CityProfileResponse> {
+    return this.cityProfileService.updateCityProfile(cityName, updateCityProfileDto, req.user);
   }
   @Get("/getAllCityProfiles")
   async getAllCityProfiles() {
-  return this.cityProfileService.getAllCityProfiles();
-}
+    return this.cityProfileService.getAllCityProfiles();
+  }
+  @Get('/getCityProfileByName/:city')
+  async getCityProfileByCity(@Param('city') city: string) {
+    return this.cityProfileService.getCityProfileByCity(city);
+  }
 }
