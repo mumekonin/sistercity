@@ -3,7 +3,7 @@ import { Model } from "mongoose";
 import { InjectModel } from "@nestjs/mongoose";
 import { CityProfile } from "../schema/cityProfile.schema";
 import { CreateCityProfileDto, UpdateCityProfileDto } from "../dto/cityProfile.dto";
-import { CityProfileResponse } from "../response/cityProfile.response";
+import { CityProfileResponse, DepartmentResponse } from "../response/cityProfile.response";
 import { ConflictException } from "@nestjs/common";
 import { Role } from "src/common/enum/enum";
 import { City } from "src/common/enum/enum"
@@ -286,4 +286,24 @@ export class CityProfileService {
 
     return cityProfileResponse;
   }
+  async getCityDepartments(city: string): Promise<DepartmentResponse[]> {
+  const profile = await this.cityProfileModel
+    .findOne({ city: city.toUpperCase() as City })
+    .select('departments')
+    .lean();
+
+  if (!profile) {
+    throw new NotFoundException(`Profile for ${city} not found`);
+  }
+
+  const departmentsResponse: DepartmentResponse[] = profile.departments.map((dept: any) => {
+    return {
+      name: dept.name,
+      headName: dept.headName,
+      headEmail: dept.headEmail,
+    };
+  });
+
+  return departmentsResponse;
+}
 }

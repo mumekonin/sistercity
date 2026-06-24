@@ -32,4 +32,8 @@ export class CityProfileController {
   async getCityProfileByCity(@Param('city') city: string) {
     return this.cityProfileService.getCityProfileByCity(city);
   }
+  @Get('getListOfDepartmentsInCity/:city')
+  async getCityDepartments(@Param('city') city: string) {
+    return this.cityProfileService.getCityDepartments(city);
+  }
 }
