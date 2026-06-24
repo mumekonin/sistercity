@@ -1,6 +1,6 @@
 import { IsString,IsNotEmpty,IsEnum,IsOptional,IsNumber,IsDate,IsMongoId,IsArray,ValidateNested,Min,IsIn,} from 'class-validator';
 import { Type } from 'class-transformer';
-import {City,Priority,MilestoneStatus,TaskStatus,TaskPriority,IssueStatus,IssueSeverity,Responsible,ProjectStatus,} from '../../common/enum/enum';
+import {Priority,MilestoneStatus,TaskStatus,TaskPriority,IssueStatus,IssueSeverity,Responsible,ProjectStatus,} from '../../common/enum/enum';
 
 export class CreateProjectDto {
 
@@ -165,11 +165,7 @@ export class CreateTaskDto {
 
   @IsMongoId()
   @IsNotEmpty()
-  assignedTo!: string;       
-
-  @IsEnum(City)
-  @IsNotEmpty()
-  assignedCity!: City;        
+  assignedTo!: string;
 
   @IsEnum(TaskPriority)
   @IsNotEmpty()
