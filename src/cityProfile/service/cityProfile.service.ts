@@ -78,7 +78,7 @@ export class CityProfileService {
       throw new ForbiddenException('You can only update your own city profile');
     }
 
-    // basicInfo 
+     
     if (updateDto.basicInfo?.name) {
       profile.basicInfo.name = updateDto.basicInfo.name;
     }
@@ -94,7 +94,8 @@ export class CityProfileService {
     if (updateDto.basicInfo?.officialWebsite) {
       profile.basicInfo.officialWebsite = updateDto.basicInfo.officialWebsite;
     }
-    // population fields
+    
+
     if (updateDto.population?.total) {
       profile.population.total = updateDto.population.total;
     }
@@ -120,7 +121,7 @@ export class CityProfileService {
     if (updateDto.areasOfFocus) {
       profile.areasOfFocus = updateDto.areasOfFocus;
     }
-    // contactInfo fields
+
     if (updateDto.contactInfo?.address) {
       profile.contactInfo.address = updateDto.contactInfo.address;
     }
@@ -130,7 +131,7 @@ export class CityProfileService {
     if (updateDto.contactInfo?.email) {
       profile.contactInfo.email = updateDto.contactInfo.email;
     }
-    // partnershipHistory fields
+    
     if (updateDto.partnershipHistory?.agreementDate) {
       profile.partnershipHistory.agreementDate = updateDto.partnershipHistory.agreementDate;
 
@@ -187,7 +188,7 @@ export class CityProfileService {
     const profiles = await this.cityProfileModel.find().lean();
 
     if (!profiles || profiles.length === 0) {
-      throw new NotFoundException('No city profiles found');
+      return [];
     }
 
     const cityProfilesResponse: CityProfileResponse[] = profiles.map((profile) => {

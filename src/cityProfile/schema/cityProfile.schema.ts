@@ -110,11 +110,8 @@ export class CityProfile extends Document {
 
   @Prop({ required: true, type: PartnershipHistory })
   partnershipHistory!: PartnershipHistory;
- 
-  @Prop({default: Date.now})
-  createdAt!:Date;
-  @Prop({default: Date.now})
-  updatedAt!:Date
+  createdAt!: Date;
+  updatedAt!: Date
 }
 
 export const CityProfileSchema = SchemaFactory.createForClass(CityProfile);
