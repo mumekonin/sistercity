@@ -186,37 +186,36 @@ export class UpdatePopulationDto {
   @Type(() => Date)
   lastUpdated?: Date;
 }
-
 export class UpdateKeyOfficialDto {
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   name!: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  title?: string;
+  title!: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsEmail()
-  email?: string;
+  email!: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  phone?: string;
+  phone!: string;
 }
 
 export class UpdateDepartmentDto {
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   name!: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  headName?: string;
+  headName!: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsEmail()
-  headEmail?: string;
+  headEmail!: string;
 }
 
 export class UpdateContactInfoDto {

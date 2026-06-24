@@ -69,11 +69,11 @@ export class CityProfileService {
     return cityProfileResponse;
   }
 
-  async updateCityProfile(cityName: string, updateDto: UpdateCityProfileDto, currentUser: any,): Promise<CityProfileResponse> {
-    const profile = await this.cityProfileModel.findOne({ cityName });
-    if (!profile) throw new NotFoundException(`Profile for ${cityName} not found`);
+  async updateCityProfile(id: string, updateDto: UpdateCityProfileDto, currentUser: any,): Promise<CityProfileResponse> {
+    const profile = await this.cityProfileModel.findById(id);
+    if (!profile) throw new NotFoundException(`Profile  not found`);
 
-    if (currentUser.role === Role.CITY_ADMIN && currentUser.city !== cityName) {
+    if (currentUser.role === Role.CITY_ADMIN && currentUser.city !==  profile.city) {
       throw new ForbiddenException('You can only update your own city profile');
     }
 
@@ -182,4 +182,56 @@ export class CityProfileService {
 
     return cityProfileResponse;
   }
+ async getAllCityProfiles(): Promise<CityProfileResponse[]> {
+  const profiles = await this.cityProfileModel.find().lean();
+
+  if (!profiles || profiles.length === 0) {
+    throw new NotFoundException('No city profiles found');
+  }
+
+  const cityProfilesResponse: CityProfileResponse[] = profiles.map((profile) => {
+    return {
+      id: profile._id.toString(),
+      city: profile.city,
+      basicInfo: {
+        name: profile.basicInfo.name,
+        region: profile.basicInfo.region,
+        yearEstablished: profile.basicInfo.yearEstablished,
+        landAreaSm2: profile.basicInfo.landAreaSm2,
+        officialWebsite: profile.basicInfo.officialWebsite
+      },
+      population: {
+        total: profile.population.total,
+        male: profile.population.male,
+        female: profile.population.female,
+        youth: profile.population.youth,
+        lastUpdated: profile.population.lastUpdated,
+      },
+      keyOfficials: profile.keyOfficials.map((official: any) => ({
+        name: official.name,
+        title: official.title,
+        email: official.email,
+        phone: official.phone,
+      })),
+      departments: profile.departments.map((dept: any) => ({
+        name: dept.name,
+        headName: dept.headName,
+        headEmail: dept.headEmail,
+      })),
+      areasOfFocus: profile.areasOfFocus,
+      contactInfo: {
+        address: profile.contactInfo.address,
+        phone: profile.contactInfo.phone,
+        email: profile.contactInfo.email,
+      },
+      partnershipHistory: {
+        agreementDate: profile.partnershipHistory.agreementDate,
+        summary: profile.partnershipHistory.summary,
+      },
+      updatedAt: profile.updatedAt,
+      createdAt: profile.createdAt,
+    };
+  });
+  return cityProfilesResponse;
+}
 }
