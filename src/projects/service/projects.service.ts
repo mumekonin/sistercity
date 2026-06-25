@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { Project } from '../schema/projects.schema';
 import { CreateProjectDto } from '../dto/projects.dto';
 import { ProjectResponse } from '../response/projects..response';
-import { ProjectStatus, Role } from '../../common/enum/enum';
+import { City, ProjectStatus, Role } from '../../common/enum/enum';
 
 @Injectable()
 export class ProjectsService {
@@ -102,24 +102,41 @@ export class ProjectsService {
     };
   }
 
-  async getProjectById(id: string, currentUser: any): Promise<ProjectResponse> {
-    const project = await this.projectModel.findById(id).lean();
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-    if (currentUser.role === Role.DEPT_OFFICER) {
-      const isAssigned =
-        project.adama?.department === currentUser.department ||
-        project.aurora?.department === currentUser.department;
-      if (!isAssigned) {
-        throw new ForbiddenException('You are not assigned to this project');
-      }
-    }
+async getProjectById(id: string, currentUser: any): Promise<ProjectResponse> {
 
-    if (currentUser.role === Role.CITY_ADMIN && project.proposedBy !== currentUser.city) {
-      throw new ForbiddenException('You can only view your own city projects');
-    }
+  const project = await this.projectModel.findById(id).lean();
 
-    return this.mapToResponse(project);
+  if (!project) {
+    throw new NotFoundException('Project not found');
   }
+
+  if (currentUser.role === Role.DEPT_OFFICER) {
+    const isAssigned =
+      (currentUser.city === City.ADAMA &&
+       project.adama?.department === currentUser.department) ||
+      (currentUser.city === City.AURORA &&
+       project.aurora?.department === currentUser.department);
+
+    if (!isAssigned) {
+      throw new ForbiddenException(
+        'You are not assigned to this project'
+      );
+    }
+  }
+
+  if (currentUser.role === Role.CITY_ADMIN) {
+    const isInvolved =
+      project.proposedBy === currentUser.city ||
+      (currentUser.city === City.ADAMA  && project.adama  !== null) ||
+      (currentUser.city === City.AURORA && project.aurora !== null);
+
+    if (!isInvolved) {
+      throw new ForbiddenException(
+        'You can only view projects involving your city'
+      );
+    }
+  }
+
+  return this.mapToResponse(project);
+}
 }
