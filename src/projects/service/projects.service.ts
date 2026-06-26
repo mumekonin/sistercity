@@ -431,4 +431,67 @@ export class ProjectsService {
     return this.mapToResponse(updatedProject);
   }
 
+   async getAllProjects(currentUser: any): Promise<ProjectListResponse[]> {
+
+    let projects: any[] = [];
+   //super admin see all projects 
+    if (currentUser.role === Role.SUPER_ADMIN) {
+      projects = await this.projectModel.find().lean();
+    }
+
+   //city admin only see thir own city projects
+    if (currentUser.role === Role.CITY_ADMIN) {
+
+      if (currentUser.city === City.ADAMA) {
+        projects = await this.projectModel.find({
+          $or: [
+            { proposedBy: City.ADAMA },
+            { 'adama.department': { $exists: true, $ne: null } },
+          ]
+        }).lean();
+      }
+
+      if (currentUser.city === City.AURORA) {
+        projects = await this.projectModel.find({
+          $or: [
+            { proposedBy: City.AURORA },
+            { 'aurora.department': { $exists: true, $ne: null } },
+          ]
+        }).lean();
+      }
+    }
+
+    //department seee thir own department projects 
+    if (currentUser.role === Role.DEPT_OFFICER) {
+
+      if (currentUser.city === City.ADAMA) {
+        projects = await this.projectModel.find({
+          'adama.department': currentUser.department,
+        }).lean();
+      }
+
+      if (currentUser.city === City.AURORA) {
+        projects = await this.projectModel.find({
+          'aurora.department': currentUser.department,
+        }).lean();
+      }
+    }
+
+    if (!projects || projects.length === 0) return [];
+
+    return projects.map((p: any) => ({
+      id: p._id.toString(),
+      title: p.title,
+      description: p.description,
+      proposedBy: p.proposedBy,
+      priority: p.priority,
+      status: p.status,
+      beneficiary: p.beneficiary,
+      progressPercent: p.progressPercent,
+      budgetTotal: p.budgetTotal,
+      startDate: p.startDate,
+      endDate: p.endDate,
+      createdAt: p.createdAt,
+    }));
+  }
 }

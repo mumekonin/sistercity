@@ -91,7 +91,7 @@ export class UpdateProjectStatusDto {
 export class UpdateProjectDto {
   @IsString()
   @IsNotEmpty()
-  @IsIn(['approve', 'reject', 'assign', 'plan', 'update-status'])
+  @IsIn(['approve', 'reject', 'assign', 'plan', 'update-status','complete'])
   action!: 'approve' | 'reject' | 'assign' | 'plan' | 'update-status'|'complete';
 
   @IsOptional()
