@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Project } from '../schema/projects.schema';
-import { CreateMilestoneDto, CreateProjectDto, UpdateProjectDto } from '../dto/projects.dto';
+import { CreateMilestoneDto, CreateProjectDto, UpdateMilestoneDto, UpdateProjectDto } from '../dto/projects.dto';
 import { ProjectListResponse, ProjectResponse } from '../response/projects..response';
 import { City, ProjectStatus, Role, MilestoneStatus } from '../../common/enum/enum';
 import { User } from 'src/users/schema/users.shema';
@@ -209,7 +209,7 @@ export class ProjectsService {
         }
 
         //  Check focal person exists and belongs to same city 
-        
+
         if (!updateProjectDto.focalPerson) {
           throw new BadRequestException(
             'Focal person is required for assignment'
@@ -431,15 +431,15 @@ export class ProjectsService {
     return this.mapToResponse(updatedProject);
   }
 
-   async getAllProjects(currentUser: any): Promise<ProjectListResponse[]> {
+  async getAllProjects(currentUser: any): Promise<ProjectListResponse[]> {
 
     let projects: any[] = [];
-   //super admin see all projects 
+    //super admin see all projects 
     if (currentUser.role === Role.SUPER_ADMIN) {
       projects = await this.projectModel.find().lean();
     }
 
-   //city admin only see thir own city projects
+    //city admin only see thir own city projects
     if (currentUser.role === Role.CITY_ADMIN) {
       if (currentUser.city === City.ADAMA) {
         projects = await this.projectModel.find({
@@ -476,7 +476,7 @@ export class ProjectsService {
       }
     }
 
-    if (!projects || projects.length === 0) 
+    if (!projects || projects.length === 0)
       return [];
 
     return projects.map((p: any) => ({
@@ -494,7 +494,7 @@ export class ProjectsService {
       createdAt: p.createdAt,
     }));
   }
-  async addMilestone(projectId: string,createMilestoneDto:CreateMilestoneDto,currentUser: any,): Promise<ProjectResponse> {
+  async addMilestone(projectId: string, createMilestoneDto: CreateMilestoneDto, currentUser: any,): Promise<ProjectResponse> {
     const project = await this.projectModel.findById(projectId);
 
     if (!project) {
@@ -508,9 +508,7 @@ export class ProjectsService {
       (currentUser.city === City.AURORA && project.aurora !== null);
 
     if (!isInvolved) {
-      throw new ForbiddenException(
-        'You can only add milestones to projects involving your city'
-      );
+      throw new ForbiddenException('You can only add milestones to projects involving your city');
     }
 
     // Project must be PLANNED or IN_PROGRESS 
@@ -522,9 +520,7 @@ export class ProjectsService {
     ];
 
     if (!allowedStatuses.includes(project.status)) {
-      throw new BadRequestException(
-        `Cannot add milestones to a project with status ${project.status}`
-      );
+      throw new BadRequestException(`Cannot add milestones to a project with status ${project.status}`);
     }
 
     // Add milestone 
@@ -539,6 +535,107 @@ export class ProjectsService {
     } as any);
 
     //Save and return 
+    const updatedProject = await project.save();
+    return this.mapToResponse(updatedProject);
+  }
+
+  async updateMilestone(projectId: string, milestoneId: string, updateMilestoneDto: UpdateMilestoneDto,
+    currentUser: any,): Promise<ProjectResponse> {
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    //Dept Officer must be assigned 
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      const isAssigned =
+        (currentUser.city === City.ADAMA &&
+          project.adama?.department === currentUser.department) ||
+        (currentUser.city === City.AURORA &&
+          project.aurora?.department === currentUser.department);
+
+      if (!isAssigned) {
+        throw new ForbiddenException('You are not assigned to this project' );
+      }
+    }
+
+    // City Admin must be involved 
+    if (currentUser.role === Role.CITY_ADMIN) {
+      const isInvolved =
+        project.proposedBy === currentUser.city ||
+        (currentUser.city === City.ADAMA && project.adama !== null) ||
+        (currentUser.city === City.AURORA && project.aurora !== null);
+
+      if (!isInvolved) {
+        throw new ForbiddenException('You can only update milestones for projects involving your city');
+      }
+    }
+
+    // Find milestone index 
+    const milestoneIndex = project.milestones.findIndex(
+      (m: any) => m._id.toString() === milestoneId
+    );
+
+    if (milestoneIndex === -1) {
+      throw new NotFoundException('Milestone not found');
+    }
+
+    const milestone = project.milestones[milestoneIndex];
+
+    // Only City Admin can update completed milestone
+    if (
+      milestone.status === MilestoneStatus.COMPLETED &&
+      currentUser.role !== Role.CITY_ADMIN
+    ) {
+      throw new BadRequestException(
+        'Only City Admin can update a completed milestone'
+      );
+    }
+
+    //Handle delayReason 
+    if (updateMilestoneDto.status === MilestoneStatus.DELAYED) {
+
+      if (!updateMilestoneDto.delayReason) {
+        throw new BadRequestException('delayReason is required when milestone status is DELAYED');
+      }
+
+      project.milestones[milestoneIndex].delayReason =
+        updateMilestoneDto.delayReason as any;
+
+    } else {
+      project.milestones[milestoneIndex].delayReason = null as any;
+    }
+
+    // Handle completedAt 
+    if (updateMilestoneDto.status === MilestoneStatus.COMPLETED) {
+
+      // Only set if not already completed
+      if (milestone.status !== MilestoneStatus.COMPLETED) {
+        project.milestones[milestoneIndex].completedAt = new Date() as any;
+      }
+
+    } else {
+      project.milestones[milestoneIndex].completedAt = null as any;
+    }
+
+    //Update status directly on array 
+    project.milestones[milestoneIndex].status =
+      updateMilestoneDto.status as any;
+
+    //Recalculate progressPercent 
+    const totalMilestones = project.milestones.length;
+    const completedMilestones = project.milestones.filter(
+      (m: any) => m.status === MilestoneStatus.COMPLETED
+    ).length;
+
+    project.progressPercent = totalMilestones === 0
+      ? 0
+      : Math.round((completedMilestones / totalMilestones) * 100);
+
+    //Mark array as modified for Mongoose 
+    project.markModified('milestones');
+
     const updatedProject = await project.save();
     return this.mapToResponse(updatedProject);
   }
