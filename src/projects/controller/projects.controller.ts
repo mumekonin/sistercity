@@ -29,16 +29,16 @@ export class ProjectsController {
   async updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto, @Req() req: any,) {
     return this.projectsService.updateProject(id, updateProjectDto, req.user);
   }
-  @Get('/')
-  @UseGuards(AuthGuard('jwt'))
-  async getAllProjects(@Req() req: any) {
-    return this.projectsService.getAllProjects(req.user);
-  }
-  @Post('/:id/milestones')
-  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN)
-  async addMilestone(@Param('id') id: string, @Body() createMilestoneDto: CreateMilestoneDto, @Req() req: any,
-  ) {
-    return this.projectsService.addMilestone(id, createMilestoneDto, req.user,);
-  }
+  // @Get('/')
+  // @UseGuards(AuthGuard('jwt'))
+  // async getAllProjects(@Req() req: any) {
+  //   return this.projectsService.getAllProjects(req.user);
+  // }
+  // @Post('/:id/milestones')
+  // @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  // @Roles(Role.CITY_ADMIN)
+  // async addMilestone(@Param('id') id: string, @Body() createMilestoneDto: CreateMilestoneDto, @Req() req: any,
+  // ) {
+  //   return this.projectsService.addMilestone(id, createMilestoneDto, req.user,);
+  // }
 }

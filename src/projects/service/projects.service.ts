@@ -4,13 +4,16 @@ import { Model } from 'mongoose';
 import { Project } from '../schema/projects.schema';
 import { CreateMilestoneDto, CreateProjectDto, UpdateProjectDto } from '../dto/projects.dto';
 import { ProjectListResponse, ProjectResponse } from '../response/projects..response';
-import { City, ProjectStatus, Role ,MilestoneStatus} from '../../common/enum/enum';
+import { City, ProjectStatus, Role, MilestoneStatus } from '../../common/enum/enum';
+import { User } from 'src/users/schema/users.shema';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectModel(Project.name)
     private readonly projectModel: Model<Project>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
   ) { }
 
   async createProject(createProjectDto: CreateProjectDto, currentUser: any): Promise<ProjectResponse> {
@@ -190,12 +193,14 @@ export class ProjectsService {
         break;
       }
       case 'assign': {
+
         // Must be APPROVED
         if (project.status !== ProjectStatus.APPROVED) {
           throw new BadRequestException(
             'Project must be APPROVED before assigning departments'
           );
         }
+
         // Department required
         if (!updateProjectDto.department) {
           throw new BadRequestException(
@@ -203,10 +208,32 @@ export class ProjectsService {
           );
         }
 
-        // Focal person required
+        //  Check focal person exists and belongs to same city 
+        
         if (!updateProjectDto.focalPerson) {
           throw new BadRequestException(
             'Focal person is required for assignment'
+          );
+        }
+
+        const focalPerson = await this.userModel.findById(
+          updateProjectDto.focalPerson
+        );
+
+        if (!focalPerson) {
+          throw new NotFoundException('Focal person not found');
+        }
+
+        if (focalPerson.city !== currentUser.city) {
+          throw new ForbiddenException(
+            'Focal person must belong to your city'
+          );
+        }
+
+        // Focal person must belong to the assigned department
+        if (focalPerson.department !== updateProjectDto.department) {
+          throw new BadRequestException(
+            'Focal person must belong to the assigned department'
           );
         }
 
@@ -236,7 +263,7 @@ export class ProjectsService {
           } as any;
         }
 
-        // Both assigned  auto move to PLANNED
+        // Both assigned — auto move to PLANNED
         if (project.adama !== null && project.aurora !== null) {
           project.status = ProjectStatus.PLANNED;
         }
@@ -403,5 +430,5 @@ export class ProjectsService {
     const updatedProject = await project.save();
     return this.mapToResponse(updatedProject);
   }
- 
+
 }
