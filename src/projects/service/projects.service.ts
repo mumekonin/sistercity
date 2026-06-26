@@ -2,9 +2,9 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Project } from '../schema/projects.schema';
-import { CreateProjectDto } from '../dto/projects.dto';
-import { ProjectResponse } from '../response/projects..response';
-import { City, ProjectStatus, Role } from '../../common/enum/enum';
+import { CreateMilestoneDto, CreateProjectDto, UpdateProjectDto } from '../dto/projects.dto';
+import { ProjectListResponse, ProjectResponse } from '../response/projects..response';
+import { City, ProjectStatus, Role ,MilestoneStatus} from '../../common/enum/enum';
 
 @Injectable()
 export class ProjectsService {
@@ -102,41 +102,306 @@ export class ProjectsService {
     };
   }
 
-async getProjectById(id: string, currentUser: any): Promise<ProjectResponse> {
+  async getProjectById(id: string, currentUser: any): Promise<ProjectResponse> {
 
-  const project = await this.projectModel.findById(id).lean();
+    const project = await this.projectModel.findById(id).lean();
 
-  if (!project) {
-    throw new NotFoundException('Project not found');
-  }
-
-  if (currentUser.role === Role.DEPT_OFFICER) {
-    const isAssigned =
-      (currentUser.city === City.ADAMA &&
-       project.adama?.department === currentUser.department) ||
-      (currentUser.city === City.AURORA &&
-       project.aurora?.department === currentUser.department);
-
-    if (!isAssigned) {
-      throw new ForbiddenException(
-        'You are not assigned to this project'
-      );
+    if (!project) {
+      throw new NotFoundException('Project not found');
     }
-  }
 
-  if (currentUser.role === Role.CITY_ADMIN) {
-    const isInvolved =
-      project.proposedBy === currentUser.city ||
-      (currentUser.city === City.ADAMA  && project.adama  !== null) ||
-      (currentUser.city === City.AURORA && project.aurora !== null);
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      const isAssigned =
+        (currentUser.city === City.ADAMA &&
+          project.adama?.department === currentUser.department) ||
+        (currentUser.city === City.AURORA &&
+          project.aurora?.department === currentUser.department);
 
-    if (!isInvolved) {
-      throw new ForbiddenException(
-        'You can only view projects involving your city'
-      );
+      if (!isAssigned) {
+        throw new ForbiddenException(
+          'You are not assigned to this project'
+        );
+      }
     }
+
+    if (currentUser.role === Role.CITY_ADMIN) {
+      const isInvolved =
+        project.proposedBy === currentUser.city ||
+        (currentUser.city === City.ADAMA && project.adama !== null) ||
+        (currentUser.city === City.AURORA && project.aurora !== null);
+
+      if (!isInvolved) {
+        throw new ForbiddenException(
+          'You can only view projects involving your city'
+        );
+      }
+    }
+
+    return this.mapToResponse(project);
   }
 
-  return this.mapToResponse(project);
-}
+  async updateProject(id: string, updateProjectDto: UpdateProjectDto, currentUser: any): Promise<ProjectResponse> {
+    const project = await this.projectModel.findById(id);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    switch (updateProjectDto.action) {
+      case 'approve': {
+        // Only RECEIVING city can approve
+        if (currentUser.city === project.proposedBy) {
+          throw new ForbiddenException(
+            'You cannot approve your own city project proposal'
+          );
+        }
+        // Must be PROPOSED
+        if (project.status !== ProjectStatus.PROPOSED) {
+          throw new BadRequestException(
+            `Cannot approve a project with status ${project.status}`
+          );
+        }
+        project.status = ProjectStatus.APPROVED;
+        break;
+      }
+      case 'reject': {
+
+        // Only RECEIVING city can reject
+        if (currentUser.city === project.proposedBy) {
+          throw new ForbiddenException(
+            'You cannot reject your own city project proposal'
+          );
+        }
+
+        // Must be PROPOSED
+        if (project.status !== ProjectStatus.PROPOSED) {
+          throw new BadRequestException(
+            `Cannot reject a project with status ${project.status}`
+          );
+        }
+        // Rejection reason required
+        if (!updateProjectDto.rejectionReason) {
+          throw new BadRequestException(
+            'Rejection reason is required when rejecting a project'
+          );
+        }
+
+        project.status = ProjectStatus.REJECTED;
+        project.rejectionReason = updateProjectDto.rejectionReason;
+        break;
+      }
+      case 'assign': {
+        // Must be APPROVED
+        if (project.status !== ProjectStatus.APPROVED) {
+          throw new BadRequestException(
+            'Project must be APPROVED before assigning departments'
+          );
+        }
+        // Department required
+        if (!updateProjectDto.department) {
+          throw new BadRequestException(
+            'Department is required for assignment'
+          );
+        }
+
+        // Focal person required
+        if (!updateProjectDto.focalPerson) {
+          throw new BadRequestException(
+            'Focal person is required for assignment'
+          );
+        }
+
+        // Adama assigns their side
+        if (currentUser.city === City.ADAMA) {
+          if (project.adama !== null) {
+            throw new BadRequestException(
+              'Adama has already assigned their department'
+            );
+          }
+          project.adama = {
+            department: updateProjectDto.department,
+            focalPerson: updateProjectDto.focalPerson,
+          } as any;
+        }
+
+        // Aurora assigns their side
+        if (currentUser.city === City.AURORA) {
+          if (project.aurora !== null) {
+            throw new BadRequestException(
+              'Aurora has already assigned their department'
+            );
+          }
+          project.aurora = {
+            department: updateProjectDto.department,
+            focalPerson: updateProjectDto.focalPerson,
+          } as any;
+        }
+
+        // Both assigned  auto move to PLANNED
+        if (project.adama !== null && project.aurora !== null) {
+          project.status = ProjectStatus.PLANNED;
+        }
+
+        break;
+      }
+      case 'plan': {
+
+        // Must be PLANNED status
+        if (project.status !== ProjectStatus.PLANNED) {
+          throw new BadRequestException(
+            'Project must be in PLANNED status before setting budget'
+          );
+        }
+
+        // Budget required
+        if (updateProjectDto.budget === undefined) {
+          throw new BadRequestException(
+            'Budget is required for planning'
+          );
+        }
+
+        // Start date required
+        if (!updateProjectDto.startDate) {
+          throw new BadRequestException(
+            'Start date is required for planning'
+          );
+        }
+
+        // End date required
+        if (!updateProjectDto.endDate) {
+          throw new BadRequestException(
+            'End date is required for planning'
+          );
+        }
+
+        // End date must be after start date
+        if (updateProjectDto.endDate <= updateProjectDto.startDate) {
+          throw new BadRequestException(
+            'End date must be after start date'
+          );
+        }
+
+        // Adama sets their budget
+        if (currentUser.city === City.ADAMA) {
+          if (project.adamaPlanned) {
+            throw new BadRequestException(
+              'Adama has already submitted their budget'
+            );
+          }
+          project.budgetAdama = updateProjectDto.budget;
+          project.adamaPlanned = true;
+        }
+
+        // Aurora sets their budget
+        if (currentUser.city === City.AURORA) {
+          if (project.auroraPlanned) {
+            throw new BadRequestException(
+              'Aurora has already submitted their budget'
+            );
+          }
+          project.budgetAurora = updateProjectDto.budget;
+          project.auroraPlanned = true;
+        }
+
+        // Recalculate total
+        project.budgetTotal = project.budgetAdama + project.budgetAurora;
+
+        project.startDate = updateProjectDto.startDate;
+        project.endDate = updateProjectDto.endDate;
+
+        break;
+      }
+
+      case 'update-status': {
+        // Status required
+        if (!updateProjectDto.status) {
+          throw new BadRequestException(
+            'Status is required for update-status action'
+          );
+        }
+
+        // Cannot use this action for COMPLETED
+        if (updateProjectDto.status === ProjectStatus.COMPLETED) {
+          throw new BadRequestException(
+            'Use action complete to mark a project as completed'
+          );
+        }
+
+        // Before IN_PROGRESS both cities must have planned
+        if (updateProjectDto.status === ProjectStatus.IN_PROGRESS) {
+          if (!project.adamaPlanned || !project.auroraPlanned) {
+            throw new BadRequestException(
+              'Both cities must submit their budget before starting the project'
+            );
+          }
+        }
+
+        // Allowed transitions
+        const allowedTransitions: Record<string, ProjectStatus[]> = {
+          [ProjectStatus.PLANNED]: [ProjectStatus.IN_PROGRESS],
+          [ProjectStatus.IN_PROGRESS]: [ProjectStatus.ON_HOLD, ProjectStatus.DELAYED],
+          [ProjectStatus.ON_HOLD]: [ProjectStatus.IN_PROGRESS],
+          [ProjectStatus.DELAYED]: [ProjectStatus.IN_PROGRESS],
+        };
+
+        const allowed = allowedTransitions[project.status];
+
+        if (!allowed || !allowed.includes(updateProjectDto.status)) {
+          throw new BadRequestException(
+            `Cannot move project from ${project.status} to ${updateProjectDto.status}`
+          );
+        }
+
+        // Set actualStartDate first time project moves to IN_PROGRESS
+        if (
+          updateProjectDto.status === ProjectStatus.IN_PROGRESS &&
+          !project.actualStartDate
+        ) {
+          project.actualStartDate = new Date();
+        }
+
+        project.status = updateProjectDto.status;
+        break;
+      }
+
+      case 'complete': {
+
+        // Must be IN_PROGRESS
+        if (project.status !== ProjectStatus.IN_PROGRESS) {
+          throw new BadRequestException(
+            'Project must be IN_PROGRESS to mark as completed'
+          );
+        }
+
+        // City already confirmed
+        if (project.completedBy.includes(currentUser.city)) {
+          throw new BadRequestException(
+            'Your city has already confirmed completion'
+          );
+        }
+
+        // Add current city to completedBy
+        project.completedBy.push(currentUser.city);
+
+        // Both cities confirmed — close project
+        if (
+          project.completedBy.includes(City.ADAMA) &&
+          project.completedBy.includes(City.AURORA)
+        ) {
+          project.status = ProjectStatus.COMPLETED;
+          project.actualEndDate = new Date();
+        }
+
+        break;
+      }
+
+      default: {
+        throw new BadRequestException(
+          `Unknown action: ${updateProjectDto.action}`
+        );
+      }
+    }
+    const updatedProject = await project.save();
+    return this.mapToResponse(updatedProject);
+  }
+ 
 }

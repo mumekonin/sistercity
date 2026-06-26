@@ -1,10 +1,10 @@
-import { Controller, Post, Body, Req, UseGuards, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Get, Param, Patch } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DbRolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorator/role.decorator';
 import { Role } from '../../common/enum/enum';
 import { ProjectsService } from '../service/projects.service';
-import { CreateProjectDto } from '../dto/projects.dto';
+import { CreateProjectDto, UpdateProjectDto, CreateMilestoneDto } from '../dto/projects.dto';
 
 @Controller('/projects')
 export class ProjectsController {
@@ -22,5 +22,23 @@ export class ProjectsController {
   @Roles(Role.DEPT_OFFICER, Role.CITY_ADMIN, Role.SUPER_ADMIN)
   async getProjectById(@Param('id') id: string, @Req() req: any) {
     return this.projectsService.getProjectById(id, req.user);
+  }
+  @Patch('/:id')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN)
+  async updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto, @Req() req: any,) {
+    return this.projectsService.updateProject(id, updateProjectDto, req.user);
+  }
+  @Get('/')
+  @UseGuards(AuthGuard('jwt'))
+  async getAllProjects(@Req() req: any) {
+    return this.projectsService.getAllProjects(req.user);
+  }
+  @Post('/:id/milestones')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN)
+  async addMilestone(@Param('id') id: string, @Body() createMilestoneDto: CreateMilestoneDto, @Req() req: any,
+  ) {
+    return this.projectsService.addMilestone(id, createMilestoneDto, req.user,);
   }
 }

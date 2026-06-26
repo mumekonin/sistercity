@@ -163,7 +163,13 @@ export class Project extends Document {
 
   @Prop({ type: [String], default: [] })
   completedBy!: string[];
+ 
+   @Prop({ default: false })
+  adamaPlanned!: boolean;
 
+  @Prop({ default: false })
+  auroraPlanned!: boolean;
+  
   createdAt!: Date;
   updatedAt!: Date;
 }
