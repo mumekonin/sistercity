@@ -441,7 +441,6 @@ export class ProjectsService {
 
    //city admin only see thir own city projects
     if (currentUser.role === Role.CITY_ADMIN) {
-
       if (currentUser.city === City.ADAMA) {
         projects = await this.projectModel.find({
           $or: [
@@ -477,7 +476,8 @@ export class ProjectsService {
       }
     }
 
-    if (!projects || projects.length === 0) return [];
+    if (!projects || projects.length === 0) 
+      return [];
 
     return projects.map((p: any) => ({
       id: p._id.toString(),
@@ -493,5 +493,53 @@ export class ProjectsService {
       endDate: p.endDate,
       createdAt: p.createdAt,
     }));
+  }
+  async addMilestone(projectId: string,createMilestoneDto:CreateMilestoneDto,currentUser: any,): Promise<ProjectResponse> {
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    //City Admin must belong to this project 
+    const isInvolved =
+      project.proposedBy === currentUser.city ||
+      (currentUser.city === City.ADAMA && project.adama !== null) ||
+      (currentUser.city === City.AURORA && project.aurora !== null);
+
+    if (!isInvolved) {
+      throw new ForbiddenException(
+        'You can only add milestones to projects involving your city'
+      );
+    }
+
+    // Project must be PLANNED or IN_PROGRESS 
+    const allowedStatuses = [
+      ProjectStatus.PLANNED,
+      ProjectStatus.IN_PROGRESS,
+      ProjectStatus.ON_HOLD,
+      ProjectStatus.DELAYED
+    ];
+
+    if (!allowedStatuses.includes(project.status)) {
+      throw new BadRequestException(
+        `Cannot add milestones to a project with status ${project.status}`
+      );
+    }
+
+    // Add milestone 
+    project.milestones.push({
+      title: createMilestoneDto.title,
+      description: createMilestoneDto.description,
+      deadline: createMilestoneDto.deadline,
+      responsible: createMilestoneDto.responsible,
+      status: MilestoneStatus.NOT_STARTED,
+      completedAt: null,
+      delayReason: null,
+    } as any);
+
+    //Save and return 
+    const updatedProject = await project.save();
+    return this.mapToResponse(updatedProject);
   }
 }
