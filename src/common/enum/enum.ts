@@ -70,6 +70,6 @@ export enum IssueSeverity {
 
 export enum Responsible {
   ADAMA  = 'ADAMA',
-  SHEGER = 'SHEGER',
+  SHEGER = 'AURORA',
   BOTH   = 'BOTH'
 }

@@ -59,22 +59,22 @@ export class ProjectsController {
   }
   @Patch('/:id/tasks/:tid')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
+  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER, Role.SUPER_ADMIN)
   async updateTask(@Param('id') id: string, @Param('tid') tid: string, @Body() updateTaskDto: UpdateTaskDto, @Req() req: any,) {
     return this.projectsService.updateTask(id, tid, updateTaskDto, req.user);
   }
   @Post('/:id/issues')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
+  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER,Role.SUPER_ADMIN)
   async addIssue(@Param('id') id: string, @Body() createIssueDto: CreateIssueDto, @Req() req: any) {
     return this.projectsService.addIssue(id, createIssueDto, req.user,);
   }
 
-@Patch('/:id/issues/:iid')
-@UseGuards(AuthGuard('jwt'), DbRolesGuard)
-@Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
-async updateIssue(@Param('id')  id:  string,@Param('iid') iid: string,@Body() updateIssueDto: UpdateIssueDto, @Req() req: any,
-) {
-  return this.projectsService.updateIssue( id, iid, updateIssueDto, req.user );
-}
+  @Patch('/:id/issues/:iid')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER,Role.SUPER_ADMIN)
+  async updateIssue(@Param('id') id: string, @Param('iid') iid: string, @Body() updateIssueDto: UpdateIssueDto, @Req() req: any,
+  ) {
+    return this.projectsService.updateIssue(id, iid, updateIssueDto, req.user);
+  }
 }

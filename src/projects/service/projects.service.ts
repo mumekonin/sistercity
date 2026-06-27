@@ -647,18 +647,16 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    // ── Step 2: City Admin must be involved in this project ─────
+    // City Admin must be involved in this project 
     const isInvolved =
       project.proposedBy === currentUser.city ||
       (currentUser.city === City.ADAMA && project.adama !== null) ||
       (currentUser.city === City.AURORA && project.aurora !== null);
 
     if (!isInvolved) {
-      throw new ForbiddenException(
-        'You can only add tasks to projects involving your city'
-      );
+      throw new ForbiddenException('You can only add tasks to projects involving your city');
     }
-    // Tasks are actual work items — only added when work has started
+    // Tasks are added to only the started project
     const allowedStatuses = [
       ProjectStatus.IN_PROGRESS,
       ProjectStatus.ON_HOLD,
@@ -666,28 +664,20 @@ export class ProjectsService {
     ];
 
     if (!allowedStatuses.includes(project.status)) {
-      throw new BadRequestException(
-        `Cannot add tasks to a project with status ${project.status}. Project must be IN_PROGRESS, ON_HOLD or DELAYED`
-      );
+      throw new BadRequestException(`Cannot add tasks to a project with status ${project.status}. Project must be IN_PROGRESS, ON_HOLD or DELAYED`);
     }
 
-    const assignedUser = await this.userModel.findById(
-      createTaskDto.assignedTo
-    );
+    const assignedUser = await this.userModel.findById(createTaskDto.assignedTo);
 
     if (!assignedUser) {
       throw new NotFoundException('Assigned user not found');
     }
     if (assignedUser.city !== currentUser.city) {
-      throw new ForbiddenException(
-        'You can only assign tasks to staff members from your own city'
-      );
+      throw new ForbiddenException('You can only assign tasks to staff members from your own city');
     }
 
     if (!assignedUser.isActive) {
-      throw new BadRequestException(
-        'Cannot assign a task to a deactivated user'
-      );
+      throw new BadRequestException('Cannot assign a task to a deactivated user');
     }
     project.tasks.push({
       title: createTaskDto.title,
@@ -735,7 +725,6 @@ export class ProjectsService {
       }
     }
     if (updateTaskDto.status) {
-
       const allowedTransitions: Record<string, TaskStatus[]> = {
         [TaskStatus.TODO]: [TaskStatus.IN_PROGRESS],
         [TaskStatus.IN_PROGRESS]: [TaskStatus.DONE, TaskStatus.TODO],
