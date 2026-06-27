@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Project } from '../schema/projects.schema';
-import { CreateMilestoneDto, CreateProjectDto, CreateTaskDto, UpdateMilestoneDto, UpdateProjectDto } from '../dto/projects.dto';
+import { CreateMilestoneDto, CreateProjectDto, CreateTaskDto, UpdateMilestoneDto, UpdateProjectDto, UpdateTaskDto } from '../dto/projects.dto';
 import { ProjectListResponse, ProjectResponse } from '../response/projects..response';
 import { City, ProjectStatus, Role, MilestoneStatus, TaskStatus } from '../../common/enum/enum';
 import { User } from 'src/users/schema/users.shema';
@@ -556,7 +556,7 @@ export class ProjectsService {
           project.aurora?.department === currentUser.department);
 
       if (!isAssigned) {
-        throw new ForbiddenException('You are not assigned to this project' );
+        throw new ForbiddenException('You are not assigned to this project');
       }
     }
 
@@ -640,67 +640,139 @@ export class ProjectsService {
     return this.mapToResponse(updatedProject);
   }
 
-  async addTask(projectId: string,createTaskDto: CreateTaskDto,currentUser: any): Promise<ProjectResponse> {
-  const project = await this.projectModel.findById(projectId);
+  async addTask(projectId: string, createTaskDto: CreateTaskDto, currentUser: any): Promise<ProjectResponse> {
+    const project = await this.projectModel.findById(projectId);
 
-  if (!project) {
-    throw new NotFoundException('Project not found');
-  }
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
 
-  // ── Step 2: City Admin must be involved in this project ─────
-  const isInvolved =
-    project.proposedBy === currentUser.city ||
-    (currentUser.city === City.ADAMA  && project.adama  !== null) ||
-    (currentUser.city === City.AURORA && project.aurora !== null);
+    // ── Step 2: City Admin must be involved in this project ─────
+    const isInvolved =
+      project.proposedBy === currentUser.city ||
+      (currentUser.city === City.ADAMA && project.adama !== null) ||
+      (currentUser.city === City.AURORA && project.aurora !== null);
 
-  if (!isInvolved) {
-    throw new ForbiddenException(
-      'You can only add tasks to projects involving your city'
+    if (!isInvolved) {
+      throw new ForbiddenException(
+        'You can only add tasks to projects involving your city'
+      );
+    }
+    // Tasks are actual work items — only added when work has started
+    const allowedStatuses = [
+      ProjectStatus.IN_PROGRESS,
+      ProjectStatus.ON_HOLD,
+      ProjectStatus.DELAYED,
+    ];
+
+    if (!allowedStatuses.includes(project.status)) {
+      throw new BadRequestException(
+        `Cannot add tasks to a project with status ${project.status}. Project must be IN_PROGRESS, ON_HOLD or DELAYED`
+      );
+    }
+
+    const assignedUser = await this.userModel.findById(
+      createTaskDto.assignedTo
     );
-  }
-  // Tasks are actual work items — only added when work has started
-  const allowedStatuses = [
-    ProjectStatus.IN_PROGRESS,
-    ProjectStatus.ON_HOLD,
-    ProjectStatus.DELAYED,
-  ];
 
-  if (!allowedStatuses.includes(project.status)) {
-    throw new BadRequestException(
-      `Cannot add tasks to a project with status ${project.status}. Project must be IN_PROGRESS, ON_HOLD or DELAYED`
-    );
+    if (!assignedUser) {
+      throw new NotFoundException('Assigned user not found');
+    }
+    if (assignedUser.city !== currentUser.city) {
+      throw new ForbiddenException(
+        'You can only assign tasks to staff members from your own city'
+      );
+    }
+
+    if (!assignedUser.isActive) {
+      throw new BadRequestException(
+        'Cannot assign a task to a deactivated user'
+      );
+    }
+    project.tasks.push({
+      title: createTaskDto.title,
+      description: createTaskDto.description,
+      assignedTo: createTaskDto.assignedTo,
+      assignedCity: currentUser.city,
+      priority: createTaskDto.priority,
+      dueDate: createTaskDto.dueDate,
+      status: TaskStatus.TODO,
+      completedAt: null,
+    } as any);
+    project.markModified('tasks');
+    const updatedProject = await project.save();
+    return this.mapToResponse(updatedProject);
   }
 
-  const assignedUser = await this.userModel.findById(
-    createTaskDto.assignedTo
-  );
+  async updateTask(projectId: string, taskId: string, updateTaskDto: UpdateTaskDto, currentUser: any): Promise<ProjectResponse> {
 
-  if (!assignedUser) {
-    throw new NotFoundException('Assigned user not found');
-  }
-  if (assignedUser.city !== currentUser.city) {
-    throw new ForbiddenException(
-      'You can only assign tasks to staff members from your own city'
-    );
-  }
+    const project = await this.projectModel.findById(projectId);
 
-  if (!assignedUser.isActive) {
-    throw new BadRequestException(
-      'Cannot assign a task to a deactivated user'
-    );
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    const taskIndex = project.tasks.findIndex((t: any) => t._id.toString() === taskId);
+
+    if (taskIndex === -1) {
+      throw new NotFoundException('Task not found');
+    }
+
+    const task = project.tasks[taskIndex];
+
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      if (task.assignedTo.toString() !== currentUser.userId) {
+        throw new ForbiddenException('You can only update tasks assigned to you');
+      }
+    }
+    if (currentUser.role === Role.CITY_ADMIN) {
+      if (task.assignedCity !== currentUser.city) {
+        throw new ForbiddenException('You can only update tasks belonging to your city');
+      }
+    }
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      if (updateTaskDto.priority || updateTaskDto.dueDate) {
+        throw new ForbiddenException('Department Officers can only update task status');
+      }
+    }
+    if (updateTaskDto.status) {
+
+      const allowedTransitions: Record<string, TaskStatus[]> = {
+        [TaskStatus.TODO]: [TaskStatus.IN_PROGRESS],
+        [TaskStatus.IN_PROGRESS]: [TaskStatus.DONE, TaskStatus.TODO],
+        [TaskStatus.DONE]: [TaskStatus.IN_PROGRESS],
+      };
+
+      const allowed = allowedTransitions[task.status];
+
+      if (!allowed || !allowed.includes(updateTaskDto.status)) {
+        throw new BadRequestException(`Cannot move task from ${task.status} to ${updateTaskDto.status}`);
+      }
+      if (task.status === TaskStatus.DONE && currentUser.role === Role.DEPT_OFFICER) {
+        throw new ForbiddenException('Only City Admin can reopen a completed task');
+      }
+
+      if (updateTaskDto.status === TaskStatus.DONE) {
+        project.tasks[taskIndex].completedAt = new Date() as any;
+      }
+      if (task.status === TaskStatus.DONE && updateTaskDto.status !== TaskStatus.DONE) {
+        project.tasks[taskIndex].completedAt = null as any;
+      }
+
+      project.tasks[taskIndex].status = updateTaskDto.status as any;
+    }
+    if (updateTaskDto.priority) {
+      project.tasks[taskIndex].priority = updateTaskDto.priority as any;
+    }
+    if (updateTaskDto.dueDate) {
+
+      if (updateTaskDto.dueDate < new Date()) {
+        throw new BadRequestException('Due date cannot be in the past');
+      }
+
+      project.tasks[taskIndex].dueDate = updateTaskDto.dueDate as any;
+    }
+    project.markModified('tasks');
+    const updatedProject = await project.save();
+    return this.mapToResponse(updatedProject);
   }
-  project.tasks.push({
-    title:        createTaskDto.title,
-    description:  createTaskDto.description,
-    assignedTo:   createTaskDto.assignedTo,
-    assignedCity: currentUser.city,    
-    priority:     createTaskDto.priority,
-    dueDate:      createTaskDto.dueDate,
-    status:       TaskStatus.TODO,     
-    completedAt:  null,
-  } as any);
-  project.markModified('tasks');
-  const updatedProject = await project.save();
-  return this.mapToResponse(updatedProject);
-}
 }
