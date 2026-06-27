@@ -2,9 +2,9 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Project } from '../schema/projects.schema';
-import { CreateMilestoneDto, CreateProjectDto, CreateTaskDto, UpdateMilestoneDto, UpdateProjectDto, UpdateTaskDto } from '../dto/projects.dto';
+import { CreateIssueDto, CreateMilestoneDto, CreateProjectDto, CreateTaskDto, UpdateMilestoneDto, UpdateProjectDto, UpdateTaskDto } from '../dto/projects.dto';
 import { ProjectListResponse, ProjectResponse } from '../response/projects..response';
-import { City, ProjectStatus, Role, MilestoneStatus, TaskStatus } from '../../common/enum/enum';
+import { City, ProjectStatus, Role, MilestoneStatus, TaskStatus, IssueStatus } from '../../common/enum/enum';
 import { User } from 'src/users/schema/users.shema';
 
 @Injectable()
@@ -772,6 +772,49 @@ export class ProjectsService {
       project.tasks[taskIndex].dueDate = updateTaskDto.dueDate as any;
     }
     project.markModified('tasks');
+    const updatedProject = await project.save();
+    return this.mapToResponse(updatedProject);
+  }
+  async addIssue(projectId: string, createIssueDto: CreateIssueDto, currentUser: any): Promise<ProjectResponse> {
+
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      const isAssigned = (currentUser.city === City.ADAMA && project.adama?.department === currentUser.department) ||
+        (currentUser.city === City.AURORA && project.aurora?.department === currentUser.department);
+
+      if (!isAssigned) {
+        throw new ForbiddenException('You are not assigned to this project');
+      }
+    }
+
+    if (currentUser.role === Role.CITY_ADMIN) {
+      const isInvolved = project.proposedBy === currentUser.city || (currentUser.city === City.ADAMA && project.adama !== null) || (currentUser.city === City.AURORA && project.aurora !== null);
+
+      if (!isInvolved) {
+        throw new ForbiddenException('You can only report issues on projects involving your city');
+      }
+    }
+    const allowedStatuses = [ProjectStatus.IN_PROGRESS, ProjectStatus.ON_HOLD, ProjectStatus.DELAYED];
+
+    if (!allowedStatuses.includes(project.status)) {
+      throw new BadRequestException(`Cannot report issues on a project with status ${project.status}`);
+    }
+    project.issues.push({
+      description: createIssueDto.description,
+      severity: createIssueDto.severity,
+      affectedCity: createIssueDto.affectedCity,
+      raisedBy: currentUser.userId,
+      raisedAt: new Date(),
+      status: IssueStatus.OPEN,
+      resolution: null,
+      resolvedAt: null,
+    } as any);
+
+    project.markModified('issues');
     const updatedProject = await project.save();
     return this.mapToResponse(updatedProject);
   }

@@ -4,7 +4,7 @@ import { DbRolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorator/role.decorator';
 import { Role } from '../../common/enum/enum';
 import { ProjectsService } from '../service/projects.service';
-import { CreateProjectDto, UpdateProjectDto, CreateMilestoneDto, UpdateMilestoneDto, CreateTaskDto, UpdateTaskDto } from '../dto/projects.dto';
+import { CreateProjectDto, UpdateProjectDto, CreateMilestoneDto, UpdateMilestoneDto, CreateTaskDto, UpdateTaskDto, CreateIssueDto } from '../dto/projects.dto';
 
 @Controller('/projects')
 export class ProjectsController {
@@ -62,5 +62,11 @@ async addTask( @Param('id') id: string, @Body() createTaskDto: CreateTaskDto, @R
 @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
 async updateTask(@Param('id')  id:  string,@Param('tid') tid: string,@Body() updateTaskDto: UpdateTaskDto,@Req() req: any,) {
   return this.projectsService.updateTask( id, tid, updateTaskDto, req.user);
+}
+@Post('/:id/issues')
+@UseGuards(AuthGuard('jwt'), DbRolesGuard)
+@Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
+async addIssue(@Param('id') id: string,@Body() createIssueDto: CreateIssueDto, @Req() req: any) {
+  return this.projectsService.addIssue(id,createIssueDto,req.user,);
 }
 }
