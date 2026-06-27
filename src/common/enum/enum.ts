@@ -73,3 +73,27 @@ export enum Responsible {
   SHEGER = 'AURORA',
   BOTH   = 'BOTH'
 }
+
+export enum DocumentCategory {
+  LEGAL       = 'LEGAL',
+  PROJECT     = 'PROJECT',
+  MEETING     = 'MEETING',
+  FINANCIAL   = 'FINANCIAL',
+  POLICY      = 'POLICY',
+  EVIDENCE    = 'EVIDENCE',
+  ARCHIVE     = 'ARCHIVE',
+}
+
+export enum AccessLevel {
+  PUBLIC          = 'PUBLIC',
+  BOTH_CITIES     = 'BOTH_CITIES',
+  DEPARTMENT_ONLY = 'DEPARTMENT_ONLY',
+  ADMINS_ONLY     = 'ADMINS_ONLY',
+}
+
+export enum DocumentApprovalStatus {
+  DRAFT        = 'DRAFT',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+  APPROVED     = 'APPROVED',
+  REJECTED     = 'REJECTED',
+}
