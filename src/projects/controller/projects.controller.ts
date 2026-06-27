@@ -4,7 +4,7 @@ import { DbRolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorator/role.decorator';
 import { Role } from '../../common/enum/enum';
 import { ProjectsService } from '../service/projects.service';
-import { CreateProjectDto, UpdateProjectDto, CreateMilestoneDto, UpdateMilestoneDto, CreateTaskDto } from '../dto/projects.dto';
+import { CreateProjectDto, UpdateProjectDto, CreateMilestoneDto, UpdateMilestoneDto, CreateTaskDto, UpdateTaskDto } from '../dto/projects.dto';
 
 @Controller('/projects')
 export class ProjectsController {
@@ -56,5 +56,11 @@ async updateMilestone(@Param('id')  id:  string,@Param('mid') mid: string,@Body(
 async addTask( @Param('id') id: string, @Body() createTaskDto: CreateTaskDto, @Req() req: any,
 ) {
   return this.projectsService.addTask( id, createTaskDto, req.user);
+}
+@Patch('/:id/tasks/:tid')
+@UseGuards(AuthGuard('jwt'), DbRolesGuard)
+@Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
+async updateTask(@Param('id')  id:  string,@Param('tid') tid: string,@Body() updateTaskDto: UpdateTaskDto,@Req() req: any,) {
+  return this.projectsService.updateTask( id, tid, updateTaskDto, req.user);
 }
 }
