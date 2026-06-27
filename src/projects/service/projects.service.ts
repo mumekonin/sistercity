@@ -2,9 +2,9 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Project } from '../schema/projects.schema';
-import { CreateMilestoneDto, CreateProjectDto, UpdateMilestoneDto, UpdateProjectDto } from '../dto/projects.dto';
+import { CreateMilestoneDto, CreateProjectDto, CreateTaskDto, UpdateMilestoneDto, UpdateProjectDto } from '../dto/projects.dto';
 import { ProjectListResponse, ProjectResponse } from '../response/projects..response';
-import { City, ProjectStatus, Role, MilestoneStatus } from '../../common/enum/enum';
+import { City, ProjectStatus, Role, MilestoneStatus, TaskStatus } from '../../common/enum/enum';
 import { User } from 'src/users/schema/users.shema';
 
 @Injectable()
@@ -639,4 +639,68 @@ export class ProjectsService {
     const updatedProject = await project.save();
     return this.mapToResponse(updatedProject);
   }
+
+  async addTask(projectId: string,createTaskDto: CreateTaskDto,currentUser: any): Promise<ProjectResponse> {
+  const project = await this.projectModel.findById(projectId);
+
+  if (!project) {
+    throw new NotFoundException('Project not found');
+  }
+
+  // ── Step 2: City Admin must be involved in this project ─────
+  const isInvolved =
+    project.proposedBy === currentUser.city ||
+    (currentUser.city === City.ADAMA  && project.adama  !== null) ||
+    (currentUser.city === City.AURORA && project.aurora !== null);
+
+  if (!isInvolved) {
+    throw new ForbiddenException(
+      'You can only add tasks to projects involving your city'
+    );
+  }
+  // Tasks are actual work items — only added when work has started
+  const allowedStatuses = [
+    ProjectStatus.IN_PROGRESS,
+    ProjectStatus.ON_HOLD,
+    ProjectStatus.DELAYED,
+  ];
+
+  if (!allowedStatuses.includes(project.status)) {
+    throw new BadRequestException(
+      `Cannot add tasks to a project with status ${project.status}. Project must be IN_PROGRESS, ON_HOLD or DELAYED`
+    );
+  }
+
+  const assignedUser = await this.userModel.findById(
+    createTaskDto.assignedTo
+  );
+
+  if (!assignedUser) {
+    throw new NotFoundException('Assigned user not found');
+  }
+  if (assignedUser.city !== currentUser.city) {
+    throw new ForbiddenException(
+      'You can only assign tasks to staff members from your own city'
+    );
+  }
+
+  if (!assignedUser.isActive) {
+    throw new BadRequestException(
+      'Cannot assign a task to a deactivated user'
+    );
+  }
+  project.tasks.push({
+    title:        createTaskDto.title,
+    description:  createTaskDto.description,
+    assignedTo:   createTaskDto.assignedTo,
+    assignedCity: currentUser.city,    
+    priority:     createTaskDto.priority,
+    dueDate:      createTaskDto.dueDate,
+    status:       TaskStatus.TODO,     
+    completedAt:  null,
+  } as any);
+  project.markModified('tasks');
+  const updatedProject = await project.save();
+  return this.mapToResponse(updatedProject);
+}
 }
