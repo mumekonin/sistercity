@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Project } from '../schema/projects.schema';
-import { CreateIssueDto, CreateMilestoneDto, CreateProjectDto, CreateTaskDto, UpdateMilestoneDto, UpdateProjectDto, UpdateTaskDto } from '../dto/projects.dto';
+import { CreateIssueDto, CreateMilestoneDto, CreateProjectDto, CreateTaskDto, UpdateIssueDto, UpdateMilestoneDto, UpdateProjectDto, UpdateTaskDto } from '../dto/projects.dto';
 import { ProjectListResponse, ProjectResponse } from '../response/projects..response';
 import { City, ProjectStatus, Role, MilestoneStatus, TaskStatus, IssueStatus } from '../../common/enum/enum';
 import { User } from 'src/users/schema/users.shema';
@@ -814,6 +814,75 @@ export class ProjectsService {
       resolvedAt: null,
     } as any);
 
+    project.markModified('issues');
+    const updatedProject = await project.save();
+    return this.mapToResponse(updatedProject);
+  }
+  async updateIssue(projectId: string, issueId: string, updateIssueDto: UpdateIssueDto, currentUser: any): Promise<ProjectResponse> {
+
+    const project = await this.projectModel.findById(projectId);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      const isAssigned =
+        (currentUser.city === City.ADAMA &&
+          project.adama?.department === currentUser.department) ||
+        (currentUser.city === City.AURORA &&
+          project.aurora?.department === currentUser.department);
+
+      if (!isAssigned) {
+        throw new ForbiddenException('You are not assigned to this project');
+      }
+    }
+    if (currentUser.role === Role.CITY_ADMIN) {
+      const isInvolved = project.proposedBy === currentUser.city || (currentUser.city === City.ADAMA && project.adama !== null) || (currentUser.city === City.AURORA && project.aurora !== null);
+
+      if (!isInvolved) {
+        throw new ForbiddenException('You can only update issues on projects involving your city');
+      }
+    }
+    const issueIndex = project.issues.findIndex((i: any) => i._id.toString() === issueId);
+
+    if (issueIndex === -1) {
+      throw new NotFoundException('Issue not found');
+    }
+
+    const issue = project.issues[issueIndex];
+
+    if (issue.status === IssueStatus.RESOLVED && currentUser.role === Role.DEPT_OFFICER
+    ) {
+      throw new ForbiddenException('Only City Admin can reopen a resolved issue');
+    }
+
+    const allowedTransitions: Record<string, IssueStatus[]> = {
+      [IssueStatus.OPEN]: [IssueStatus.IN_PROGRESS],
+      [IssueStatus.IN_PROGRESS]: [IssueStatus.RESOLVED, IssueStatus.OPEN],
+      [IssueStatus.RESOLVED]: [IssueStatus.IN_PROGRESS],
+    };
+
+    const allowed = allowedTransitions[issue.status];
+
+    if (!allowed || !allowed.includes(updateIssueDto.status)) {
+      throw new BadRequestException(`Cannot move issue from ${issue.status} to ${updateIssueDto.status}`
+      );
+    }
+
+    if (updateIssueDto.status === IssueStatus.RESOLVED) {
+      if (!updateIssueDto.resolution) {
+        throw new BadRequestException('Resolution explanation is required when resolving an issue');
+      }
+      project.issues[issueIndex].resolution = updateIssueDto.resolution as any;
+      project.issues[issueIndex].resolvedAt = new Date() as any;
+    }
+    if (issue.status === IssueStatus.RESOLVED && updateIssueDto.status !== IssueStatus.RESOLVED
+    ) {
+      project.issues[issueIndex].resolution = null as any;
+      project.issues[issueIndex].resolvedAt = null as any;
+    }
+
+    project.issues[issueIndex].status = updateIssueDto.status as any;
     project.markModified('issues');
     const updatedProject = await project.save();
     return this.mapToResponse(updatedProject);
