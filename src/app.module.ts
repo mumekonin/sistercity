@@ -7,6 +7,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import {JwtStrategy}  from "./common/guards/jwt.strategy";
 import { CityProfileModule } from './cities/cityProfile.module';
 import { ProjectsModule } from './projects/projects.module';
+import { DocumentsModule } from './Documents/documents.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -19,7 +20,8 @@ import { ProjectsModule } from './projects/projects.module';
     }),
     UsersModule,
     ProjectsModule,
-    CityProfileModule
+    CityProfileModule,
+    DocumentsModule
   ],
   controllers: [AppController],
   providers: [AppService , JwtStrategy],
