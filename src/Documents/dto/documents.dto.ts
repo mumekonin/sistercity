@@ -2,7 +2,7 @@ import { IsString, IsNotEmpty, IsEnum, IsOptional, IsMongoId, IsDate, IsNumber, 
 import { Type } from 'class-transformer';
 import { DocumentCategory, AccessLevel, DocumentApprovalStatus, } from '../../common/enum/enum';
 export class CreateDocumentDto {
-  @IsString()
+@IsString()
   @IsNotEmpty()
   title!: string;
   @IsEnum(DocumentCategory)
@@ -24,18 +24,6 @@ export class CreateDocumentDto {
   @IsDate()
   @Type(() => Date)
   expiryDate?: Date;
-  @IsString()
-  @IsNotEmpty()
-  fileUrl!: string;
-  @IsString()
-  @IsNotEmpty()
-  fileName!: string;
-  @IsString()
-  @IsNotEmpty()
-  fileType!: string;
-  @IsNumber()
-  @Min(1)
-  fileSize!: number;
 }
 export class UpdateDocumentDto {
   @IsString()
