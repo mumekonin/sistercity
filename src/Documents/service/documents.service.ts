@@ -5,7 +5,7 @@ import { DocumentApprovalStatus, AccessLevel, Role, City } from '../../common/en
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 import { DocumentFile } from '../schema/documents.shema';
 import { CreateDocumentDto } from '../dto/documents.dto';
-import { DocumentResponse } from '../response/documents.response';
+import { DocumentListResponse, DocumentResponse } from '../response/documents.response';
 
 @Injectable()
 export class DocumentsService {
@@ -94,6 +94,82 @@ export class DocumentsService {
         action: a.action,
         timestamp: a.timestamp,
       })),
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    };
+  }
+  async getAllDocuments(currentUser: any): Promise<DocumentListResponse[]> {
+    let documents: any[] = [];
+    //super admin sees all document
+    if (currentUser.role === Role.SUPER_ADMIN) {
+      documents = await this.documentModel.find({ isArchived: false }).lean();
+    }
+    //city admin only sees thir own city document
+    if (currentUser.role === Role.CITY_ADMIN) {
+      documents = await this.documentModel
+        .find({
+          isArchived: false,
+          $or: [
+            { city: currentUser.city, },
+            {
+              city: { $ne: currentUser.city },
+              accessLevel: {
+                $in: [
+                  AccessLevel.PUBLIC,
+                  AccessLevel.BOTH_CITIES]
+              }
+            }]
+        })
+        .lean();
+    }
+    //Dept Officer  sees documents based on access level   
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      documents = await this.documentModel
+        .find({
+          isArchived: false,
+          $or: [
+            // Own department documents
+            {
+              city: currentUser.city,
+              department: currentUser.department,
+            },
+            // Public and both cities documents
+            {
+              accessLevel: {
+                $in: [
+                  AccessLevel.PUBLIC,
+                  AccessLevel.BOTH_CITIES]
+              }
+            },
+          ]
+        })
+        .lean();
+    }
+    if (!documents || documents.length === 0) return [];
+    return documents.map((doc: any) =>
+      this.mapToListResponse(doc)
+    );
+  }
+  private mapToListResponse(doc: any): DocumentListResponse {
+    return {
+      id: doc._id.toString(),
+      title: doc.title,
+      category: doc.category,
+      uploadedBy: doc.uploadedBy.toString(),
+      city: doc.city,
+      department: doc.department,
+      relatedProject: doc.relatedProject ? doc.relatedProject.toString() : null,
+      documentDate: doc.documentDate,
+      description: doc.description,
+      accessLevel: doc.accessLevel,
+      fileUrl: doc.fileUrl,
+      fileName: doc.fileName,
+      fileType: doc.fileType,
+      fileSize: doc.fileSize,
+      versionNumber: doc.versionNumber,
+      approvalStatus: doc.approvalStatus,
+      expiryDate: doc.expiryDate,
+      isArchived: doc.isArchived,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };

@@ -8,6 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Get,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -22,13 +23,18 @@ import { CreateDocumentDto } from '../dto/documents.dto';
 export class DocumentsController {
   constructor(
     private readonly documentsService: DocumentsService,
-  ) {}
+  ) { }
   @Post('/')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
   @UseInterceptors(FileInterceptor('file', multerConfig))
-  async uploadDocument( @UploadedFile() file: Express.Multer.File,@Body() createDocumentDto: CreateDocumentDto,@Req() req:any,
+  async uploadDocument(@UploadedFile() file: Express.Multer.File, @Body() createDocumentDto: CreateDocumentDto, @Req() req: any,
   ) {
-    return this.documentsService.uploadDocument(createDocumentDto,file,req.user);
+    return this.documentsService.uploadDocument(createDocumentDto, file, req.user);
+  }
+  @Get('/')
+  @UseGuards(AuthGuard('jwt'))
+  async getAllDocuments(@Req() req: any) {
+    return this.documentsService.getAllDocuments(req.user);
   }
 }
