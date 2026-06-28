@@ -174,4 +174,47 @@ export class DocumentsService {
       updatedAt: doc.updatedAt,
     };
   }
+  async getDocumentById(documentId: string, currentUser: any): Promise<DocumentResponse> {
+    const doc = await this.documentModel.findById(documentId).lean();
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+    if (doc.isArchived) {
+      throw new NotFoundException('Document not found');
+    }
+    if (currentUser.role === Role.SUPER_ADMIN) {
+    } else if (currentUser.role === Role.CITY_ADMIN) {
+      if (doc.city === currentUser.city) {
+        // allowed
+      } else {
+        if (doc.accessLevel === AccessLevel.DEPARTMENT_ONLY || doc.accessLevel === AccessLevel.ADMINS_ONLY) {
+          throw new ForbiddenException('You do not have permission to view this document');
+        }
+      }
+    } else if (currentUser.role === Role.DEPT_OFFICER) {
+      if (doc.city === currentUser.city && doc.department === currentUser.department
+      ) {
+        // allowed
+      }
+      else if (doc.accessLevel === AccessLevel.PUBLIC || doc.accessLevel === AccessLevel.BOTH_CITIES
+      ) {
+        // allowed
+      }
+      else {
+        throw new ForbiddenException('You do not have permission to view this document');
+      }
+    }
+    await this.documentModel.findByIdAndUpdate(documentId,
+      {
+        $push: {
+          activityLog: {
+            userId: currentUser.userId,
+            action: 'VIEWED',
+            timestamp: new Date(),
+          }
+        }
+      }
+    );
+    return this.mapToResponse(doc);
+  }
 }

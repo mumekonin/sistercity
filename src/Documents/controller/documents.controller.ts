@@ -1,15 +1,4 @@
-// src/documents/controller/documents.controller.ts
-
-import {
-  Controller,
-  Post,
-  Body,
-  Req,
-  UseGuards,
-  UseInterceptors,
-  UploadedFile,
-  Get,
-} from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, UseInterceptors, UploadedFile, Get, Param, } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { DbRolesGuard } from 'src/common/guards/roles.guard';
@@ -36,5 +25,11 @@ export class DocumentsController {
   @UseGuards(AuthGuard('jwt'))
   async getAllDocuments(@Req() req: any) {
     return this.documentsService.getAllDocuments(req.user);
+  }
+  @Get('/:id')
+  @UseGuards(AuthGuard('jwt'))
+  async getDocumentById(@Param('id') id: string, @Req() req: any
+  ){
+    return this.documentsService.getDocumentById(id, req.user);
   }
 }
