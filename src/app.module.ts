@@ -8,6 +8,7 @@ import {JwtStrategy}  from "./common/guards/jwt.strategy";
 import { CityProfileModule } from './cities/cityProfile.module';
 import { ProjectsModule } from './projects/projects.module';
 import { DocumentsModule } from './Documents/documents.module';
+import { CommunicationModule } from './communication/communication.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -21,7 +22,8 @@ import { DocumentsModule } from './Documents/documents.module';
     UsersModule,
     ProjectsModule,
     CityProfileModule,
-    DocumentsModule
+    DocumentsModule,
+    CommunicationModule
   ],
   controllers: [AppController],
   providers: [AppService , JwtStrategy],
