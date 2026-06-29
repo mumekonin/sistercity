@@ -97,3 +97,27 @@ export enum DocumentApprovalStatus {
   APPROVED     = 'APPROVED',
   REJECTED     = 'REJECTED',
 }
+export enum MessageType {
+  REQUEST      = 'REQUEST',
+  RESPONSE     = 'RESPONSE',
+  NOTIFICATION = 'NOTIFICATION',
+  INQUIRY      = 'INQUIRY',
+  COMPLAINT    = 'COMPLAINT',
+  INVITATION   = 'INVITATION',
+  APPROVAL     = 'APPROVAL',
+  REJECTION    = 'REJECTION',
+}
+
+export enum MessagePriority {
+  NORMAL   = 'NORMAL',
+  URGENT   = 'URGENT',
+  CRITICAL = 'CRITICAL',
+}
+
+export enum MessageStatus {
+  SENT      = 'SENT',
+  READ      = 'READ',
+  REPLIED   = 'REPLIED',
+  ESCALATED = 'ESCALATED',
+  CLOSED    = 'CLOSED',
+}
