@@ -213,5 +213,129 @@ async getMessages(currentUser: any, type: string = 'received'): Promise<MessageL
       createdAt: message.createdAt,
     };
   }
+async getMessageById(id: string, currentUser: any): Promise<MessageResponse> {
+  const message = await this.messageModel.findById(id).lean();
+  if (!message) throw new NotFoundException('Message not found');
+  const hasAccess =
+    message.from.userId.toString() === currentUser.userId ||
+    (message.to.userId &&
+      message.to.userId.toString() === currentUser.userId) ||
+    (message.to.city === currentUser.city &&
+      message.to.department === currentUser.department) ||
+    (currentUser.role === Role.CITY_ADMIN &&
+      message.to.city === currentUser.city) ||
+    currentUser.role === Role.SUPER_ADMIN;
 
+  if (!hasAccess) {
+    throw new ForbiddenException('You do not have access to this message');
+  }
+  if (message.status === MessageStatus.SENT && message.to.city === currentUser.city) {
+    await this.messageModel.findByIdAndUpdate(id, {status: MessageStatus.READ,readAt: new Date()});
+    message.status = MessageStatus.READ;
+    message.readAt = new Date();
+  }
+  const thread = await this.messageModel.find({threadId: message.threadId,_id: { $ne: message._id },}).sort({ createdAt: 1 }).lean();
+
+  return this.toMessageResponse(message, thread);
+}
+
+// Reply to Message
+async replyToMessage(id: string,replyMessageDto: ReplyMessageDto,currentUser: any): Promise<MessageResponse> {
+  const parentMessage = await this.messageModel.findById(id);
+  if (!parentMessage) throw new NotFoundException('Message not found');
+  const sender = await this.userModel.findById(currentUser.userId);
+  if (!sender) throw new NotFoundException('Sender not found');
+  const isRecipient = parentMessage.to.city === currentUser.city && parentMessage.to.department === currentUser.department;
+  if (!isRecipient) {
+    throw new ForbiddenException('Only the recipient can reply to this message');
+  }
+  if (parentMessage.status === MessageStatus.CLOSED) {
+    throw new BadRequestException('Cannot reply to a closed message');
+  }
+
+  const referenceNumber = await this.generateReferenceNumber(currentUser.city);
+  const responseDeadline = this.calculateDeadline(parentMessage.priority as unknown as MessagePriority);
+
+  const reply = new this.messageModel({
+    referenceNumber,
+    responseDeadline,
+    threadId: parentMessage.threadId,
+    parentId: parentMessage._id,
+    from: {
+      userId: currentUser.userId,
+      city: currentUser.city,
+      department: currentUser.department,
+      name: sender.fullName,
+    },
+    to: {
+      city: parentMessage.from.city,
+      department: parentMessage.from.department,
+      userId: parentMessage.from.userId,
+    },
+    subject: `RE: ${parentMessage.subject}`,
+    messageType: parentMessage.messageType,
+    priority: parentMessage.priority,
+    body: replyMessageDto.body,
+    attachments: replyMessageDto.attachments ?? [],
+    relatedProject: parentMessage.relatedProject,
+    status: MessageStatus.SENT,
+    readAt: null,
+    isEscalated: false,
+    isArchived: false,
+  });
+
+  const savedReply = await reply.save();
+  parentMessage.status = MessageStatus.REPLIED as unknown as typeof parentMessage.status;
+  await parentMessage.save();
+  return this.toMessageResponse(savedReply, []);
+}
+// Update Message 
+async updateMessage(id: string,updateMessageDto: UpdateMessageDto,
+currentUser: any): Promise<MessageResponse> {
+  const message = await this.messageModel.findById(id);
+  if (!message) throw new NotFoundException('Message not found');
+  if (currentUser.role === Role.CITY_ADMIN) {
+    if (message.to.city !== currentUser.city) {
+      throw new ForbiddenException('You can only manage messages for your own city');
+    }
+  }
+
+  switch (updateMessageDto.action) {
+    case 'escalate':
+      if (message.isEscalated) {
+        throw new BadRequestException('Message is already escalated');
+      }
+      message.isEscalated = true;
+      message.status = MessageStatus.ESCALATED as unknown as typeof message.status;
+      break;
+
+    case 'close':
+      if (message.status === MessageStatus.CLOSED as unknown as typeof message.status) {
+        throw new BadRequestException('Message is already closed');
+      }
+      message.status = MessageStatus.CLOSED as unknown as typeof message.status;
+      break;
+
+    default:
+      throw new BadRequestException('Invalid action');
+  }
+
+  const updated = await message.save();
+  return this.toMessageResponse(updated, []);
+}
+
+// Get Overdue Messages
+async getOverdueMessages(currentUser: any): Promise<MessageListResponse[]> {
+  const messages = await this.messageModel
+    .find({
+      'to.city': currentUser.city,
+      responseDeadline: { $lt: new Date() },
+      status: { $in: [MessageStatus.SENT, MessageStatus.READ] },
+      isArchived: false,
+    } as any).sort({ responseDeadline: 1 }).lean();
+
+  if (!messages || messages.length === 0) return [];
+
+  return messages.map((m) => this.toMessageListResponse(m));
+}
 }

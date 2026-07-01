@@ -124,7 +124,7 @@ export class DocumentsService {
         .lean();
     }
 
-    //Dept Officer, Own department all documents
+    // Dept Officer, Own department all documents
     // Same city other dept  PUBLIC, BOTH_CITIES, OWN_CITY_ONLY
     // Other city only PUBLIC and BOTH_CITIES
     if (currentUser.role === Role.DEPT_OFFICER) {
@@ -182,75 +182,75 @@ export class DocumentsService {
       updatedAt: doc.updatedAt,
     };
   }
-async getDocumentById( documentId: string, currentUser: any): Promise<DocumentResponse> {
-  const doc = await this.documentModel.findById(documentId).lean();
+  async getDocumentById(documentId: string, currentUser: any): Promise<DocumentResponse> {
+    const doc = await this.documentModel.findById(documentId).lean();
 
-  if (!doc) {
-    throw new NotFoundException('Document not found');
-  }
-  if (doc.isArchived) {
-    throw new NotFoundException('Document not found');
-  }
-  // Super Admin  sees everything
-  if (currentUser.role === Role.SUPER_ADMIN) {
-  // City Admin
-  } else if (currentUser.role === Role.CITY_ADMIN) {
-    if (doc.city === currentUser.city) { 
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+    if (doc.isArchived) {
+      throw new NotFoundException('Document not found');
+    }
+    // Super Admin  sees everything
+    if (currentUser.role === Role.SUPER_ADMIN) {
+      // City Admin
+    } else if (currentUser.role === Role.CITY_ADMIN) {
+      if (doc.city === currentUser.city) {
 
-    // Other city
-    } else {
-      if (doc.accessLevel === AccessLevel.DEPARTMENT_ONLY ||doc.accessLevel === AccessLevel.ADMINS_ONLY ||doc.accessLevel === AccessLevel.OWN_CITY_ONLY   
+        // Other city
+      } else {
+        if (doc.accessLevel === AccessLevel.DEPARTMENT_ONLY || doc.accessLevel === AccessLevel.ADMINS_ONLY || doc.accessLevel === AccessLevel.OWN_CITY_ONLY
+        ) {
+          throw new ForbiddenException('You do not have permission to view this document');
+        }
+      }
+
+      // Dept Officer
+    } else if (currentUser.role === Role.DEPT_OFFICER) {
+      // Own department 
+      if (doc.city === currentUser.city && doc.department === currentUser.department) {
+        // Same city 
+      } else if (
+        doc.city === currentUser.city &&
+        (doc.accessLevel === AccessLevel.PUBLIC || doc.accessLevel === AccessLevel.BOTH_CITIES || doc.accessLevel === AccessLevel.OWN_CITY_ONLY)
       ) {
+      } else if (
+        doc.city !== currentUser.city &&
+        (
+          doc.accessLevel === AccessLevel.PUBLIC ||
+          doc.accessLevel === AccessLevel.BOTH_CITIES
+        )
+      ) {
+      } else {
         throw new ForbiddenException('You do not have permission to view this document');
       }
     }
-
-  // Dept Officer
-  } else if (currentUser.role === Role.DEPT_OFFICER) {
-    // Own department 
-    if ( doc.city=== currentUser.city &&doc.department === currentUser.department){
-    // Same city 
-    } else if (
-      doc.city === currentUser.city &&
-      (doc.accessLevel === AccessLevel.PUBLIC||doc.accessLevel === AccessLevel.BOTH_CITIES ||doc.accessLevel === AccessLevel.OWN_CITY_ONLY)
-    ) {
-    } else if (
-      doc.city !== currentUser.city &&
-      (
-        doc.accessLevel === AccessLevel.PUBLIC      ||
-        doc.accessLevel === AccessLevel.BOTH_CITIES
-      )
-    ) {
-    } else {
-      throw new ForbiddenException('You do not have permission to view this document');
-    }
-  }
-  await this.documentModel.findByIdAndUpdate(
-    documentId,
-    {
-      $push: {
-        activityLog: {
-          userId:currentUser.userId,
-          action:'VIEWED',
-          timestamp: new Date(),
+    await this.documentModel.findByIdAndUpdate(
+      documentId,
+      {
+        $push: {
+          activityLog: {
+            userId: currentUser.userId,
+            action: 'VIEWED',
+            timestamp: new Date(),
+          }
         }
       }
-    }
-  );
-  return this.mapToResponse(doc);
-}
-  async uploadNewVersion( documentId: string,uploadNewVersionDto:UploadNewVersionDto,file: Express.Multer.File,currentUser: any): Promise<DocumentResponse> {
+    );
+    return this.mapToResponse(doc);
+  }
+  async uploadNewVersion(documentId: string, uploadNewVersionDto: UploadNewVersionDto, file: Express.Multer.File, currentUser: any): Promise<DocumentResponse> {
     const doc = await this.documentModel.findById(documentId);
 
     if (!doc) {
-      throw new NotFoundException('Document not found'); 
+      throw new NotFoundException('Document not found');
     }
     if (doc.isArchived) {
       throw new BadRequestException('Cannot upload a new version to an archived document');
     }
     if (currentUser.role === Role.DEPT_OFFICER) {
       if (
-        doc.city !== currentUser.city ||doc.department !== currentUser.department) {
+        doc.city !== currentUser.city || doc.department !== currentUser.department) {
         throw new ForbiddenException('You can only update documents from your own department');
       }
     }
@@ -262,7 +262,7 @@ async getDocumentById( documentId: string, currentUser: any): Promise<DocumentRe
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    const uploadedFile = await this.cloudinaryService.uploadFile(file,'sister-city/documents');
+    const uploadedFile = await this.cloudinaryService.uploadFile(file, 'sister-city/documents');
     doc.previousVersions.push({
       fileUrl: doc.fileUrl,
       fileName: doc.fileName,
@@ -286,10 +286,8 @@ async getDocumentById( documentId: string, currentUser: any): Promise<DocumentRe
       action: 'UPLOADED',
       timestamp: new Date(),
     } as any);
-
     doc.markModified('previousVersions');
     doc.markModified('activityLog');
-
     const updatedDoc = await doc.save();
     return this.mapToResponse(updatedDoc);
   }
