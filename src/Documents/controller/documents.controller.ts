@@ -6,7 +6,7 @@ import { Roles } from 'src/common/decorator/role.decorator';
 import { Role } from '../../common/enum/enum';
 import { DocumentsService } from '../service/documents.service';
 import { multerConfig } from '../../common/cloudinary/multer.config';
-import { CreateDocumentDto } from '../dto/documents.dto';
+import { CreateDocumentDto, UploadNewVersionDto } from '../dto/documents.dto';
 
 @Controller('/documents')
 export class DocumentsController {
@@ -15,7 +15,7 @@ export class DocumentsController {
   ) { }
   @Post('/')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
+  @Roles(Role.CITY_ADMIN , Role.DEPT_OFFICER)
   @UseInterceptors(FileInterceptor('file', multerConfig))
   async uploadDocument(@UploadedFile() file: Express.Multer.File, @Body() createDocumentDto: CreateDocumentDto, @Req() req: any,
   ) {
@@ -29,7 +29,28 @@ export class DocumentsController {
   @Get('/:id')
   @UseGuards(AuthGuard('jwt'))
   async getDocumentById(@Param('id') id: string, @Req() req: any
-  ){
+  ) {
     return this.documentsService.getDocumentById(id, req.user);
+  }
+  // ── POST /documents/:id/version ───────────────────────────────
+  // Upload a new version of an existing document
+  // Old version saved in previousVersions array
+  // versionNumber increments
+  @Post('/:id/version')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async uploadNewVersion(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() uploadNewVersionDto: UploadNewVersionDto,
+    @Req() req: any,
+  ) {
+    return this.documentsService.uploadNewVersion(
+      id,
+      uploadNewVersionDto,
+      file,
+      req.user,
+    );
   }
 }

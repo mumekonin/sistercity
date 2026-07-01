@@ -87,6 +87,7 @@ export enum DocumentCategory {
 export enum AccessLevel {
   PUBLIC          = 'PUBLIC',
   BOTH_CITIES     = 'BOTH_CITIES',
+  OWN_CITY_ONLY   = 'OWN_CITY_ONLY',
   DEPARTMENT_ONLY = 'DEPARTMENT_ONLY',
   ADMINS_ONLY     = 'ADMINS_ONLY',
 }

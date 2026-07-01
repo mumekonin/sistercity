@@ -18,4 +18,10 @@ export class MessageController {
   async sendMessage(@Body() createMessageDto: CreateMessageDto,@Req() req: any) {
     return this.messageService.sendMessage(createMessageDto, req.user);
   }
+  @Get('/')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.DEPT_OFFICER, Role.CITY_ADMIN, Role.SUPER_ADMIN)
+  async getMessages(  @Query('type') type: string = 'received',  @Req() req: any){
+    return this.messageService.getMessages(req.user, type);
+  }
 }

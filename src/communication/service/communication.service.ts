@@ -6,6 +6,7 @@ import { MessageResponse, MessageListResponse, ThreadItemResponse } from '../res
 import { MessageStatus, MessagePriority, Role } from '../../common/enum/enum';
 import { Message } from '../schema/communication.schema';
 import { User } from 'src/users/schema/users.shema';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class MessageService {
@@ -80,7 +81,7 @@ export class MessageService {
     return this.toMessageResponse(updated, []);
   }
 
-  
+
   private toMessageResponse(message: any, thread: any[]): MessageResponse {
     return {
       id: message._id.toString(),
@@ -129,6 +130,63 @@ export class MessageService {
       updatedAt: message.updatedAt,
     };
   }
+async getMessages(currentUser: any, type: string = 'received'): Promise<MessageListResponse[]> {
+  let filter: any = {};
+
+  switch (type) {
+    case 'received':
+      filter = {
+        'to.city': currentUser.city,
+        'to.department': currentUser.department,
+        isArchived: false,
+        parentId: { $eq: null }, // ← fix null filter
+      };
+      break;
+
+    case 'sent':
+      filter = {
+        'from.userId': new Types.ObjectId(currentUser.userId), // ← fix ObjectId
+        isArchived: false,
+      };
+      break;
+
+    case 'urgent':
+      filter = {
+        'to.city': currentUser.city,
+        priority: { $in: [MessagePriority.URGENT, MessagePriority.CRITICAL] },
+        isArchived: false,
+      };
+      break;
+
+    case 'unread':
+      filter = {
+        'to.city': currentUser.city,
+        'to.department': currentUser.department,
+        status: MessageStatus.SENT,
+        isArchived: false,
+      };
+      break;
+
+    default:
+      filter = {
+        'to.city': currentUser.city,
+        isArchived: false,
+      };
+  }
+
+  console.log('filter:', JSON.stringify(filter));
+
+  const messages = await this.messageModel
+    .find(filter)
+    .sort({ createdAt: -1 })
+    .lean();
+
+  console.log('messages found:', messages.length);
+
+  if (!messages || messages.length === 0) return [];
+
+  return messages.map((m) => this.toMessageListResponse(m));
+}
 
   private toMessageListResponse(message: any): MessageListResponse {
     return {
@@ -155,4 +213,5 @@ export class MessageService {
       createdAt: message.createdAt,
     };
   }
+
 }

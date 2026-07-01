@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { DocumentApprovalStatus, AccessLevel, Role, City } from '../../common/enum/enum';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 import { DocumentFile } from '../schema/documents.shema';
-import { CreateDocumentDto } from '../dto/documents.dto';
+import { CreateDocumentDto, UploadNewVersionDto } from '../dto/documents.dto';
 import { DocumentListResponse, DocumentResponse } from '../response/documents.response';
 
 @Injectable()
@@ -99,46 +99,54 @@ export class DocumentsService {
     };
   }
   async getAllDocuments(currentUser: any): Promise<DocumentListResponse[]> {
+
     let documents: any[] = [];
-    //super admin sees all document
+
+    //Super Admin sees everything 
     if (currentUser.role === Role.SUPER_ADMIN) {
       documents = await this.documentModel.find({ isArchived: false }).lean();
     }
-    //city admin only sees thir own city document
+
+    //City Admin Own city  all documents, Other city only PUBLIC and BOTH_CITIES
     if (currentUser.role === Role.CITY_ADMIN) {
       documents = await this.documentModel
         .find({
           isArchived: false,
-          $or: [
-            { city: currentUser.city, },
-            {
-              city: { $ne: currentUser.city },
-              accessLevel: {
-                $in: [
-                  AccessLevel.PUBLIC,
-                  AccessLevel.BOTH_CITIES]
-              }
-            }]
+          $or: [{ city: currentUser.city },
+          {
+            city: { $ne: currentUser.city },
+            accessLevel: {
+              $in: [AccessLevel.PUBLIC, AccessLevel.BOTH_CITIES]
+            }
+          }
+          ]
         })
         .lean();
     }
-    //Dept Officer  sees documents based on access level   
+
+    //Dept Officer, Own department all documents
+    // Same city other dept  PUBLIC, BOTH_CITIES, OWN_CITY_ONLY
+    // Other city only PUBLIC and BOTH_CITIES
     if (currentUser.role === Role.DEPT_OFFICER) {
       documents = await this.documentModel
         .find({
           isArchived: false,
           $or: [
-            // Own department documents
             {
               city: currentUser.city,
               department: currentUser.department,
             },
-            // Public and both cities documents
             {
+              city: currentUser.city,
+              department: { $ne: currentUser.department },
               accessLevel: {
-                $in: [
-                  AccessLevel.PUBLIC,
-                  AccessLevel.BOTH_CITIES]
+                $in: [AccessLevel.PUBLIC, AccessLevel.BOTH_CITIES, AccessLevel.OWN_CITY_ONLY]
+              }
+            },
+            {
+              city: { $ne: currentUser.city },
+              accessLevel: {
+                $in: [AccessLevel.PUBLIC, AccessLevel.BOTH_CITIES]
               }
             },
           ]
@@ -174,47 +182,61 @@ export class DocumentsService {
       updatedAt: doc.updatedAt,
     };
   }
-  async getDocumentById(documentId: string, currentUser: any): Promise<DocumentResponse> {
-    const doc = await this.documentModel.findById(documentId).lean();
-    if (!doc) {
-      throw new NotFoundException('Document not found');
-    }
-    if (doc.isArchived) {
-      throw new NotFoundException('Document not found');
-    }
-    if (currentUser.role === Role.SUPER_ADMIN) {
-    } else if (currentUser.role === Role.CITY_ADMIN) {
-      if (doc.city === currentUser.city) {
-        // allowed
-      } else {
-        if (doc.accessLevel === AccessLevel.DEPARTMENT_ONLY || doc.accessLevel === AccessLevel.ADMINS_ONLY) {
-          throw new ForbiddenException('You do not have permission to view this document');
-        }
-      }
-    } else if (currentUser.role === Role.DEPT_OFFICER) {
-      if (doc.city === currentUser.city && doc.department === currentUser.department
+async getDocumentById( documentId: string, currentUser: any): Promise<DocumentResponse> {
+  const doc = await this.documentModel.findById(documentId).lean();
+
+  if (!doc) {
+    throw new NotFoundException('Document not found');
+  }
+  if (doc.isArchived) {
+    throw new NotFoundException('Document not found');
+  }
+  // Super Admin  sees everything
+  if (currentUser.role === Role.SUPER_ADMIN) {
+  // City Admin
+  } else if (currentUser.role === Role.CITY_ADMIN) {
+    if (doc.city === currentUser.city) { 
+
+    // Other city
+    } else {
+      if (doc.accessLevel === AccessLevel.DEPARTMENT_ONLY ||doc.accessLevel === AccessLevel.ADMINS_ONLY ||doc.accessLevel === AccessLevel.OWN_CITY_ONLY   
       ) {
-        // allowed
-      }
-      else if (doc.accessLevel === AccessLevel.PUBLIC || doc.accessLevel === AccessLevel.BOTH_CITIES
-      ) {
-        // allowed
-      }
-      else {
         throw new ForbiddenException('You do not have permission to view this document');
       }
     }
-    await this.documentModel.findByIdAndUpdate(documentId,
-      {
-        $push: {
-          activityLog: {
-            userId: currentUser.userId,
-            action: 'VIEWED',
-            timestamp: new Date(),
-          }
+
+  // Dept Officer
+  } else if (currentUser.role === Role.DEPT_OFFICER) {
+    // Own department 
+    if ( doc.city=== currentUser.city &&doc.department === currentUser.department){
+    // Same city 
+    } else if (
+      doc.city === currentUser.city &&
+      (doc.accessLevel === AccessLevel.PUBLIC||doc.accessLevel === AccessLevel.BOTH_CITIES ||doc.accessLevel === AccessLevel.OWN_CITY_ONLY)
+    ) {
+    } else if (
+      doc.city !== currentUser.city &&
+      (
+        doc.accessLevel === AccessLevel.PUBLIC      ||
+        doc.accessLevel === AccessLevel.BOTH_CITIES
+      )
+    ) {
+    } else {
+      throw new ForbiddenException('You do not have permission to view this document');
+    }
+  }
+  await this.documentModel.findByIdAndUpdate(
+    documentId,
+    {
+      $push: {
+        activityLog: {
+          userId:currentUser.userId,
+          action:'VIEWED',
+          timestamp: new Date(),
         }
       }
-    );
-    return this.mapToResponse(doc);
-  }
+    }
+  );
+  return this.mapToResponse(doc);
+}
 }
