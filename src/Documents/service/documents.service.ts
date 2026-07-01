@@ -239,4 +239,65 @@ async getDocumentById( documentId: string, currentUser: any): Promise<DocumentRe
   );
   return this.mapToResponse(doc);
 }
+  async uploadNewVersion( documentId: string,uploadNewVersionDto:UploadNewVersionDto,file: Express.Multer.File,currentUser: any): Promise<DocumentResponse> {
+    const doc = await this.documentModel.findById(documentId);
+
+    if (!doc) {
+      throw new NotFoundException('Document not found'); 
+    }
+    if (doc.isArchived) {
+      throw new BadRequestException('Cannot upload a new version to an archived document');
+    }
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      if (
+        doc.city !== currentUser.city ||doc.department !== currentUser.department) {
+        throw new ForbiddenException('You can only update documents from your own department');
+      }
+    }
+    if (currentUser.role === Role.CITY_ADMIN) {
+      if (doc.city !== currentUser.city) {
+        throw new ForbiddenException('You can only update documents from your own city');
+      }
+    }
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    const uploadedFile = await this.cloudinaryService.uploadFile(file,'sister-city/documents');
+    doc.previousVersions.push({
+      fileUrl: doc.fileUrl,
+      fileName: doc.fileName,
+      versionNumber: doc.versionNumber,
+      uploadedAt: doc.updatedAt,
+      changeNote: uploadNewVersionDto.changeNote || null,
+    } as any);
+
+    // ── Step 7: Replace with new file ────────────────────────────
+    doc.fileUrl = uploadedFile.fileUrl;
+    doc.fileName = uploadedFile.fileName;
+    doc.fileType = uploadedFile.fileType;
+    doc.fileSize = uploadedFile.fileSize;
+
+
+    // ── Step 8: Increment version number ─────────────────────────
+    doc.versionNumber = doc.versionNumber + 1;
+
+    // ── Step 9: Reset approval status — needs re-approval ────────
+    doc.approvalStatus = DocumentApprovalStatus.DRAFT;
+    doc.approvedBy = null;
+    doc.approvalNote = null;
+
+    // ── Step 10: Record activity ──────────────────────────────────
+    doc.activityLog.push({
+      userId: currentUser.userId,
+      action: 'UPLOADED',
+      timestamp: new Date(),
+    } as any);
+
+    // ── Step 11: Save and return ──────────────────────────────────
+    doc.markModified('previousVersions');
+    doc.markModified('activityLog');
+
+    const updatedDoc = await doc.save();
+    return this.mapToResponse(updatedDoc);
+  }
 }

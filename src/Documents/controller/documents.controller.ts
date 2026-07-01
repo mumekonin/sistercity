@@ -32,25 +32,11 @@ export class DocumentsController {
   ) {
     return this.documentsService.getDocumentById(id, req.user);
   }
-  // ── POST /documents/:id/version ───────────────────────────────
-  // Upload a new version of an existing document
-  // Old version saved in previousVersions array
-  // versionNumber increments
   @Post('/:id/version')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
   @UseInterceptors(FileInterceptor('file', multerConfig))
-  async uploadNewVersion(
-    @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
-    @Body() uploadNewVersionDto: UploadNewVersionDto,
-    @Req() req: any,
-  ) {
-    return this.documentsService.uploadNewVersion(
-      id,
-      uploadNewVersionDto,
-      file,
-      req.user,
-    );
+  async uploadNewVersion(@Param('id') id: string,@UploadedFile() file: Express.Multer.File, @Body() uploadNewVersionDto: UploadNewVersionDto, @Req() req: any) {
+    return this.documentsService.uploadNewVersion( id,uploadNewVersionDto,file,req.user);
   }
 }

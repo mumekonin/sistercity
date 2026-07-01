@@ -50,6 +50,7 @@ export class DocumentFile extends Document {
   @Prop({ required: true })
   fileType!: string;
   @Prop({ required: true })
+  fileSize!:number;
   @Prop({ default: 1 })
   versionNumber!: number;
   @Prop({ type: [PreviousVersionSchema], default: [] })
