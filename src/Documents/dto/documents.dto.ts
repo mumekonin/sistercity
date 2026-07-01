@@ -38,18 +38,6 @@ export class UpdateDocumentDto {
   accessLevel?: AccessLevel;
 }
 export class UploadNewVersionDto {
-  @IsString()
-  @IsNotEmpty()
-  fileUrl!: string;
-  @IsString()
-  @IsNotEmpty()
-  fileName!: string;
-  @IsString()
-  @IsNotEmpty()
-  fileType!: string;
-  @IsNumber()
-  @Min(1)
-  fileSize!: number;
   @IsOptional()
   @IsString()
   changeNote?: string;

@@ -270,30 +270,23 @@ async getDocumentById( documentId: string, currentUser: any): Promise<DocumentRe
       uploadedAt: doc.updatedAt,
       changeNote: uploadNewVersionDto.changeNote || null,
     } as any);
-
-    // ── Step 7: Replace with new file ────────────────────────────
     doc.fileUrl = uploadedFile.fileUrl;
     doc.fileName = uploadedFile.fileName;
     doc.fileType = uploadedFile.fileType;
     doc.fileSize = uploadedFile.fileSize;
 
-
-    // ── Step 8: Increment version number ─────────────────────────
     doc.versionNumber = doc.versionNumber + 1;
 
-    // ── Step 9: Reset approval status — needs re-approval ────────
     doc.approvalStatus = DocumentApprovalStatus.DRAFT;
     doc.approvedBy = null;
     doc.approvalNote = null;
 
-    // ── Step 10: Record activity ──────────────────────────────────
     doc.activityLog.push({
       userId: currentUser.userId,
       action: 'UPLOADED',
       timestamp: new Date(),
     } as any);
 
-    // ── Step 11: Save and return ──────────────────────────────────
     doc.markModified('previousVersions');
     doc.markModified('activityLog');
 
