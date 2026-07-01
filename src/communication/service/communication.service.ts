@@ -134,44 +134,44 @@ async getMessages(currentUser: any, type: string = 'received'): Promise<MessageL
   let filter: any = {};
 
   switch (type) {
-    case 'received':
-      filter = {
-        'to.city': currentUser.city,
-        'to.department': currentUser.department,
-        isArchived: false,
-        parentId: { $eq: null }, // ← fix null filter
-      };
-      break;
+   case 'received':
+  filter = {
+    'to.city': currentUser.city,
+    'to.department': currentUser.department,
+    isArchived: { $in: [false, null, undefined] },
+  };
+  break;
 
-    case 'sent':
-      filter = {
-        'from.userId': new Types.ObjectId(currentUser.userId), // ← fix ObjectId
-        isArchived: false,
-      };
-      break;
+case 'sent':
+  
+  filter = {
+    'from.userId':  currentUser.userId,
+    isArchived: { $in: [false, null, undefined] }, 
+  };
+  break;
 
-    case 'urgent':
-      filter = {
-        'to.city': currentUser.city,
-        priority: { $in: [MessagePriority.URGENT, MessagePriority.CRITICAL] },
-        isArchived: false,
-      };
-      break;
+case 'urgent':
+  filter = {
+    'to.city': currentUser.city,
+    priority: { $in: [MessagePriority.URGENT, MessagePriority.CRITICAL] },
+    isArchived: { $in: [false, null, undefined] },
+  };
+  break;
 
-    case 'unread':
-      filter = {
-        'to.city': currentUser.city,
-        'to.department': currentUser.department,
-        status: MessageStatus.SENT,
-        isArchived: false,
-      };
-      break;
+case 'unread':
+  filter = {
+    'to.city': currentUser.city,
+    'to.department': currentUser.department,
+    status: MessageStatus.SENT,
+    isArchived: { $in: [false, null, undefined] }, 
+  };
+  break;
 
-    default:
-      filter = {
-        'to.city': currentUser.city,
-        isArchived: false,
-      };
+default:
+  filter = {
+    'to.city': currentUser.city,
+    isArchived: { $in: [false, null, undefined] },
+  };
   }
 
   console.log('filter:', JSON.stringify(filter));
@@ -180,9 +180,6 @@ async getMessages(currentUser: any, type: string = 'received'): Promise<MessageL
     .find(filter)
     .sort({ createdAt: -1 })
     .lean();
-
-  console.log('messages found:', messages.length);
-
   if (!messages || messages.length === 0) return [];
 
   return messages.map((m) => this.toMessageListResponse(m));

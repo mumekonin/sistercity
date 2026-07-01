@@ -42,7 +42,6 @@ export class Message extends Document {
 
   @Prop({ default: null, type: Types.ObjectId, ref: 'Message' })
   parentId!: Types.ObjectId | null;
-
   @Prop({ required: true, type: MessageFrom })
   from!: MessageFrom;
 
@@ -78,6 +77,9 @@ export class Message extends Document {
   @Prop({ default: false })
   isEscalated!: boolean;
 
+  @Prop({ default: false })  
+  isArchived!: boolean;
+  
   createdAt!: Date;
   updatedAt!: Date;
 }
