@@ -328,8 +328,10 @@ async getOverdueMessages(currentUser: any): Promise<MessageListResponse[]> {
       'to.city': currentUser.city,
       responseDeadline: { $lt: new Date() },
       status: { $in: [MessageStatus.SENT, MessageStatus.READ] },
-      isArchived: false,
-    } as any).sort({ responseDeadline: 1 }).lean();
+      isArchived: { $in: [false, null, undefined] }, // ← fix
+    } as any)
+    .sort({ responseDeadline: 1 })
+    .lean();
 
   if (!messages || messages.length === 0) return [];
 
