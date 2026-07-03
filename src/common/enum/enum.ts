@@ -23,123 +23,116 @@ export enum ProjectStatus {
   PROPOSED = 'PROPOSED',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
-  PLANNED  = 'PLANNED',
+  PLANNED = 'PLANNED',
   IN_PROGRESS = 'IN_PROGRESS',
   ON_HOLD = 'ON_HOLD',
   DELAYED = 'DELAYED',
-  COMPLETED  = 'COMPLETED',
+  COMPLETED = 'COMPLETED',
 }
 
 export enum Priority {
-  HIGH   = 'HIGH',
+  HIGH = 'HIGH',
   MEDIUM = 'MEDIUM',
-  LOW    = 'LOW',
+  LOW = 'LOW',
 }
 
 export enum MilestoneStatus {
   NOT_STARTED = 'NOT_STARTED',
   IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED   = 'COMPLETED',
-  DELAYED     = 'DELAYED',
+  COMPLETED = 'COMPLETED',
+  DELAYED = 'DELAYED',
 }
 
 export enum TaskStatus {
-  TODO        = 'TODO',
+  TODO = 'TODO',
   IN_PROGRESS = 'IN_PROGRESS',
-  DONE        = 'DONE',
+  DONE = 'DONE',
 }
 
 export enum TaskPriority {
   URGENT = 'URGENT',
-  HIGH="HIGH",
+  HIGH = "HIGH",
   NORMAL = 'NORMAL',
-  LOW    = 'LOW',
+  LOW = 'LOW',
 }
 
 export enum IssueStatus {
-  OPEN        = 'OPEN',
+  OPEN = 'OPEN',
   IN_PROGRESS = 'IN_PROGRESS',
-  RESOLVED    = 'RESOLVED',
+  RESOLVED = 'RESOLVED',
 }
 
 export enum IssueSeverity {
   CRITICAL = 'CRITICAL',
-  MAJOR    = 'MAJOR',
-  MINOR    = 'MINOR',
+  MAJOR = 'MAJOR',
+  MINOR = 'MINOR',
 }
 
 export enum Responsible {
-  ADAMA  = 'ADAMA',
+  ADAMA = 'ADAMA',
   SHEGER = 'AURORA',
-  BOTH   = 'BOTH'
+  BOTH = 'BOTH'
 }
 
 export enum DocumentCategory {
-  LEGAL       = 'LEGAL',
-  PROJECT     = 'PROJECT',
-  MEETING     = 'MEETING',
-  FINANCIAL   = 'FINANCIAL',
-  POLICY      = 'POLICY',
-  EVIDENCE    = 'EVIDENCE',
-  ARCHIVE     = 'ARCHIVE',
+  LEGAL = 'LEGAL',
+  PROJECT = 'PROJECT',
+  MEETING = 'MEETING',
+  FINANCIAL = 'FINANCIAL',
+  POLICY = 'POLICY',
+  EVIDENCE = 'EVIDENCE',
+  ARCHIVE = 'ARCHIVE',
 }
 
 export enum AccessLevel {
-  PUBLIC          = 'PUBLIC',
-  BOTH_CITIES     = 'BOTH_CITIES',
-  OWN_CITY_ONLY   = 'OWN_CITY_ONLY',
+  PUBLIC = 'PUBLIC',
+  BOTH_CITIES = 'BOTH_CITIES',
+  OWN_CITY_ONLY = 'OWN_CITY_ONLY',
   DEPARTMENT_ONLY = 'DEPARTMENT_ONLY',
-  ADMINS_ONLY     = 'ADMINS_ONLY',
+  ADMINS_ONLY = 'ADMINS_ONLY',
 }
 
 export enum DocumentApprovalStatus {
   DRAFT = 'DRAFT',
-  APPROVED= 'APPROVED',
-   REJECTED = 'REJECTED'
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
 }
 export enum MessageType {
-  REQUEST      = 'REQUEST',
-  RESPONSE     = 'RESPONSE',
+  REQUEST = 'REQUEST',
+  RESPONSE = 'RESPONSE',
   NOTIFICATION = 'NOTIFICATION',
-  INQUIRY      = 'INQUIRY',
-  COMPLAINT    = 'COMPLAINT',
-  INVITATION   = 'INVITATION',
-  APPROVAL     = 'APPROVAL',
-  REJECTION    = 'REJECTION',
+  INQUIRY = 'INQUIRY',
+  COMPLAINT = 'COMPLAINT',
+  INVITATION = 'INVITATION',
+  APPROVAL = 'APPROVAL',
+  REJECTION = 'REJECTION',
 }
 
 export enum MessagePriority {
-  NORMAL   = 'NORMAL',
-  URGENT   = 'URGENT',
+  NORMAL = 'NORMAL',
+  URGENT = 'URGENT',
   CRITICAL = 'CRITICAL',
 }
 
 export enum MessageStatus {
-  SENT      = 'SENT',
-  READ      = 'READ',
-  REPLIED   = 'REPLIED',
+  SENT = 'SENT',
+  READ = 'READ',
+  REPLIED = 'REPLIED',
   ESCALATED = 'ESCALATED',
-  CLOSED    = 'CLOSED',
+  CLOSED = 'CLOSED',
 }
 export enum EventType {
-  WORKSHOP  = 'WORKSHOP',
-  OFFICIAL_VISIT  = 'OFFICIAL_VISIT',
-  CULTURAL_EXCHANGE  = 'CULTURAL_EXCHANGE',
-  INVESTMENT_FORUM   = 'INVESTMENT_FORUM',
-  COMMITTEE_MEETING  = 'COMMITTEE_MEETING',
-  TRAINING   = 'TRAINING',
+  WORKSHOP = 'WORKSHOP',
+  OFFICIAL_VISIT = 'OFFICIAL_VISIT',
+  CULTURAL_EXCHANGE = 'CULTURAL_EXCHANGE',
+  INVESTMENT_FORUM = 'INVESTMENT_FORUM',
+  COMMITTEE_MEETING = 'COMMITTEE_MEETING',
+  TRAINING = 'TRAINING',
   CEREMONY = 'CEREMONY',
 }
 
 export enum EventStatus {
-  UPCOMING  = 'UPCOMING',
+  UPCOMING = 'UPCOMING',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
-}
-
-export enum RsvpStatus {
-  PENDING  = 'PENDING',
-  ACCEPTED = 'ACCEPTED',
-  DECLINED = 'DECLINED',
-  MAYBE    = 'MAYBE',
 }
