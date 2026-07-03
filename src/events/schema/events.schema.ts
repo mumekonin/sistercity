@@ -55,7 +55,7 @@ class Minutes {
   confirmedByAdama!: boolean;
 
   @Prop({ default: false })
-  confirmedBySheger!: boolean;
+  confirmedByAurora!: boolean;
 }
 @Schema({ timestamps: true })
 export class Event extends Document {
@@ -97,8 +97,6 @@ export class Event extends Document {
 
   @Prop({ type: [Invitee], default: [] })
   invitees!: Invitee[];
-
-  // simplified from actualAttendance array
   @Prop({ type: [String], default: [] })
   attendedUserIds!: string[];
 

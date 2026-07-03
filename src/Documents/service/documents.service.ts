@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { DocumentApprovalStatus, AccessLevel, Role, City } from '../../common/enum/enum';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 import { DocumentFile } from '../schema/documents.shema';
-import { CreateDocumentDto, UploadNewVersionDto } from '../dto/documents.dto';
+import { CreateDocumentDto, UpdateDocumentDto, UploadNewVersionDto } from '../dto/documents.dto';
 import { DocumentListResponse, DocumentResponse } from '../response/documents.response';
 
 @Injectable()
@@ -287,6 +287,121 @@ export class DocumentsService {
       timestamp: new Date(),
     } as any);
     doc.markModified('previousVersions');
+    doc.markModified('activityLog');
+    const updatedDoc = await doc.save();
+    return this.mapToResponse(updatedDoc);
+  }
+  async updateDocument(documentId: string, updateDocumentDto: UpdateDocumentDto, currentUser: any): Promise<DocumentResponse> {
+    const doc = await this.documentModel.findById(documentId);
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+
+    //City Admin must be from same city 
+    if (currentUser.role === Role.CITY_ADMIN) {
+      if (doc.city !== currentUser.city) {
+        throw new ForbiddenException('You can only manage documents from your own city');
+      }
+    }
+
+    // Route to correct action 
+    switch (updateDocumentDto.action) {
+      case 'approve': {
+
+        // Only DRAFT can be approved
+        if (doc.approvalStatus !== DocumentApprovalStatus.DRAFT) {
+          throw new BadRequestException(`Cannot approve a document with status ${doc.approvalStatus}`);
+        }
+        // Cannot approve archived document
+        if (doc.isArchived) {
+          throw new BadRequestException('Cannot approve an archived document');
+        }
+        doc.approvalStatus = DocumentApprovalStatus.APPROVED;
+        doc.approvedBy = currentUser.userId;
+        doc.approvalNote = updateDocumentDto.approvalNote || null;
+        doc.activityLog.push({
+          userId: currentUser.userId,
+          action: 'APPROVED',
+          timestamp: new Date(),
+        } as any);
+        break;
+      }
+      case 'reject': {
+
+        // Only DRAFT can be rejected
+        if (doc.approvalStatus !== DocumentApprovalStatus.DRAFT) {
+          throw new BadRequestException(`Cannot reject a document with status ${doc.approvalStatus}`);
+        }
+
+        // Cannot reject archived document
+        if (doc.isArchived) {
+          throw new BadRequestException('Cannot reject an archived document');
+        }
+
+        // Rejection reason is required
+        if (!updateDocumentDto.approvalNote) {
+          throw new BadRequestException('Rejection reason is required when rejecting a document');
+        }
+        doc.approvalStatus = DocumentApprovalStatus.REJECTED;
+        doc.approvedBy = null;
+        doc.approvalNote = updateDocumentDto.approvalNote;
+        doc.activityLog.push({
+          userId: currentUser.userId,
+          action: 'REJECTED',
+          timestamp: new Date(),
+        } as any);
+        break;
+      }
+      case 'archive': {
+        // Must be APPROVED to archive
+        if (doc.approvalStatus !== DocumentApprovalStatus.APPROVED) {
+          throw new BadRequestException('Only approved documents can be archived');
+        }
+        // Already archived
+        if (doc.isArchived) {
+          throw new BadRequestException(
+            'Document is already archived'
+          );
+        }
+        doc.isArchived = true;
+        doc.activityLog.push({
+          userId: currentUser.userId,
+          action: 'ARCHIVED',
+          timestamp: new Date(),
+        } as any);
+        break;
+      }
+      case 'change-access': {
+        // Cannot change access of archived document
+        if (doc.isArchived) {
+          throw new BadRequestException('Cannot change access level of an archived document'
+);
+        }
+
+        // accessLevel required
+        if (!updateDocumentDto.accessLevel) {
+          throw new BadRequestException('accessLevel is required for change-access action');
+        }
+
+        // Dept Officer can only change their own document
+        if (currentUser.role === Role.DEPT_OFFICER) {
+          if (doc.city !== currentUser.city ||doc.department !== currentUser.department
+          ) {
+            throw new ForbiddenException( 'You can only change access of your own department documents' );
+          }
+        }
+        doc.accessLevel = updateDocumentDto.accessLevel;
+        doc.activityLog.push({
+          userId: currentUser.userId,
+          action: 'ACCESS_CHANGED',
+          timestamp: new Date(),
+        } as any);
+        break;
+      }
+      default: {
+        throw new BadRequestException(`Unknown action: ${updateDocumentDto.action}`);
+      }
+    }
     doc.markModified('activityLog');
     const updatedDoc = await doc.save();
     return this.mapToResponse(updatedDoc);

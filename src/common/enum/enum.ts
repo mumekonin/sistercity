@@ -93,10 +93,9 @@ export enum AccessLevel {
 }
 
 export enum DocumentApprovalStatus {
-  DRAFT        = 'DRAFT',
-  UNDER_REVIEW = 'UNDER_REVIEW',
-  APPROVED     = 'APPROVED',
-  REJECTED     = 'REJECTED',
+  DRAFT = 'DRAFT',
+  APPROVED= 'APPROVED',
+   REJECTED = 'REJECTED'
 }
 export enum MessageType {
   REQUEST      = 'REQUEST',
