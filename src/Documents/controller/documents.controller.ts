@@ -12,31 +12,38 @@ import { CreateDocumentDto, UploadNewVersionDto, UpdateDocumentDto } from '../dt
 export class DocumentsController {
   constructor(
     private readonly documentsService: DocumentsService,
-  ) { }
+  ) {}
   @Post('/')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
   @UseInterceptors(FileInterceptor('file', multerConfig))
-  async uploadDocument(@UploadedFile() file: Express.Multer.File, @Body() createDocumentDto: CreateDocumentDto, @Req() req: any,
-  ) {
-    return this.documentsService.uploadDocument(createDocumentDto, file, req.user);
+  async uploadDocument(@UploadedFile() file: Express.Multer.File,@Body() createDocumentDto: CreateDocumentDto, @Req() req: any) {
+    return this.documentsService.uploadDocument(
+      createDocumentDto, file, req.user
+    );
   }
+
   @Get('/')
   @UseGuards(AuthGuard('jwt'))
   async getAllDocuments(@Req() req: any) {
     return this.documentsService.getAllDocuments(req.user);
   }
+
+  @Get('/:id/download')
+  @UseGuards(AuthGuard('jwt'))
+  async downloadDocument(@Param('id') id: string, @Req() req: any ) {
+    return this.documentsService.downloadDocument(id, req.user);
+  }
   @Get('/:id')
   @UseGuards(AuthGuard('jwt'))
-  async getDocumentById(@Param('id') id: string, @Req() req: any
-  ) {
+  async getDocumentById(@Param('id') id: string, @Req() req: any) {
     return this.documentsService.getDocumentById(id, req.user);
   }
   @Post('/:id/version')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
   @UseInterceptors(FileInterceptor('file', multerConfig))
-  async uploadNewVersion(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @Body() uploadNewVersionDto: UploadNewVersionDto, @Req() req: any) {
+  async uploadNewVersion(@Param('id') id: string,@UploadedFile() file: Express.Multer.File,@Body() uploadNewVersionDto: UploadNewVersionDto,@Req() req: any) {
     return this.documentsService.uploadNewVersion(id, uploadNewVersionDto, file, req.user);
   }
   @Patch('/:id')
@@ -44,10 +51,5 @@ export class DocumentsController {
   @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
   async updateDocument(@Param('id') id: string, @Body() updateDocumentDto: UpdateDocumentDto, @Req() req: any) {
     return this.documentsService.updateDocument(id, updateDocumentDto, req.user);
-  }
-  @Get('/:id/download')
-  @UseGuards(AuthGuard('jwt'))
-  async downloadDocument(@Param('id') id: string,@Req() req: any) {
-    return this.documentsService.downloadDocument(id, req.user);
   }
 }

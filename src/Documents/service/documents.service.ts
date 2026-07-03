@@ -307,7 +307,9 @@ export class DocumentsService {
     // Route to correct action 
     switch (updateDocumentDto.action) {
       case 'approve': {
-
+        if (currentUser.role === Role.DEPT_OFFICER) {
+          throw new ForbiddenException('Only City Admin can approve documents');
+        }
         // Only DRAFT can be approved
         if (doc.approvalStatus !== DocumentApprovalStatus.DRAFT) {
           throw new BadRequestException(`Cannot approve a document with status ${doc.approvalStatus}`);
@@ -328,6 +330,9 @@ export class DocumentsService {
       }
       case 'reject': {
 
+        if (currentUser.role === Role.DEPT_OFFICER) {
+          throw new ForbiddenException('Only City Admin can reject documents');
+        }
         // Only DRAFT can be rejected
         if (doc.approvalStatus !== DocumentApprovalStatus.DRAFT) {
           throw new BadRequestException(`Cannot reject a document with status ${doc.approvalStatus}`);
@@ -353,6 +358,9 @@ export class DocumentsService {
         break;
       }
       case 'archive': {
+        if (currentUser.role === Role.DEPT_OFFICER) {
+          throw new ForbiddenException('Only City Admin can archive documents');
+        }
         // Must be APPROVED to archive
         if (doc.approvalStatus !== DocumentApprovalStatus.APPROVED) {
           throw new BadRequestException('Only approved documents can be archived');
@@ -435,7 +443,7 @@ export class DocumentsService {
     }
     else if (currentUser.role === Role.DEPT_OFFICER) {
       // Own department  allowed
-      if (doc.city === currentUser.city &&doc.department === currentUser.department) {
+      if (doc.city === currentUser.city && doc.department === currentUser.department) {
         // Same city — PUBLIC, BOTH_CITIES, OWN_CITY_ONLY
       } else if (doc.city === currentUser.city &&
         (
