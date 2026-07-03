@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { EventService } from "../service/events.service";
 import { AuthGuard } from "@nestjs/passport";
 import { DbRolesGuard } from "src/common/guards/roles.guard";
 import { Roles } from "src/common/decorator/role.decorator";
 import { Role } from "src/common/enum/enum";
-import { CreateEventDto, UpdateEventDto } from "../dto/events.dto";
+import { CreateEventDto, UpdateEventDto ,ConfirmMinutesDto} from "../dto/events.dto";
 @Controller('/events')
 export class EventController {
   constructor(
@@ -29,5 +29,17 @@ export class EventController {
   @Roles(Role.CITY_ADMIN)
   async updateEvent(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto, @Req() req: any) {
     return this.eventService.updateEvent(id, updateEventDto, req.user);
+  }
+  @Patch(':id/cancel')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN)
+  async cancelEvent(@Param('id') id: string, @Req() req: any) {
+    return this.eventService.cancelEvent(id, req.user);
+  }
+  @Patch(':id/minutes')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN)
+  async updateMinutes(   @Param('id') id: string,   @Body() confirmMinutesDto: ConfirmMinutesDto,   @Req() req: any ) {
+    return this.eventService.updateMinutes(id, confirmMinutesDto, req.user);
   }
 }

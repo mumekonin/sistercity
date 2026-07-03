@@ -2,9 +2,9 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { Event } from "../schema/events.schema";
-import { CreateEventDto, UpdateEventDto } from "../dto/events.dto";
+import { ConfirmMinutesDto, CreateEventDto, UpdateEventDto } from "../dto/events.dto";
 import { EventListResponse, EventResponse } from "../response/events.response";
-import { EventStatus, Role } from "src/common/enum/enum";
+import { EventStatus, Role, City } from "src/common/enum/enum";
 @Injectable()
 export class EventService {
   constructor(
@@ -196,6 +196,86 @@ export class EventService {
         throw new BadRequestException('Invalid action');
     }
 
+    const updated = await event.save();
+    return this.toEventResponse(updated);
+  }
+  async cancelEvent(id: string, currentUser: any): Promise<EventResponse> {
+    const event = await this.eventModel.findById(id);
+    if (!event) throw new NotFoundException('Event not found');
+
+    // only organizer city or SUPER_ADMIN can cancel
+    if (currentUser.role !== Role.SUPER_ADMIN && event.organizerCity !== currentUser.city) {
+      throw new ForbiddenException('You can only cancel your own city events');
+    }
+    if ((event.status as any) === EventStatus.CANCELLED) {
+      throw new BadRequestException('Event is already cancelled');
+    }
+    if ((event.status as any) === EventStatus.COMPLETED) {
+      throw new BadRequestException('Cannot cancel a completed event');
+    }
+
+    event.status = EventStatus.CANCELLED as any;
+    await event.save();
+    return this.toEventResponse(event);
+  }
+  async updateMinutes(id: string, confirmMinutesDto: ConfirmMinutesDto, currentUser: any): Promise<EventResponse> {
+    const event = await this.eventModel.findById(id);
+    if (!event) throw new NotFoundException('Event not found');
+
+    // event must be COMPLETED
+    if ((event.status as any) !== EventStatus.COMPLETED) {
+      throw new BadRequestException('Minutes can only be uploaded or confirmed for completed events');
+    }
+
+    switch (confirmMinutesDto.action) {
+
+      case 'upload':
+        // only organizer city can upload minutes
+        if (event.organizerCity !== currentUser.city &&
+          currentUser.role !== Role.SUPER_ADMIN) {
+          throw new ForbiddenException('Only the organizer city can upload minutes');
+        }
+
+        if (!confirmMinutesDto.minutes) {
+          throw new BadRequestException('Minutes content is required');
+        }
+
+        event.minutes.summary = confirmMinutesDto.minutes.summary as any;
+        event.minutes.decisions = confirmMinutesDto.minutes.decisions as any;
+
+        // reset confirmations when minutes are re-uploaded
+        event.minutes.confirmedByAdama = false as any;
+        event.minutes.confirmedByAurora = false as any;
+
+        event.markModified('minutes');
+        break;
+
+      case 'confirm':
+        // minutes must be uploaded first
+        if (!event.minutes.summary) {
+          throw new BadRequestException(
+            'Minutes must be uploaded before confirming',
+          );
+        }
+
+        // each city confirms their own
+        if (currentUser.city === City.ADAMA) {
+          if ((event.minutes.confirmedByAdama as any) === true) {
+            throw new BadRequestException('Adama has already confirmed the minutes');
+          }
+          event.minutes.confirmedByAdama = true as any;
+        }
+        if (currentUser.city === City.AURORA) {
+          if ((event.minutes.confirmedByAurora as any) === true) {
+            throw new BadRequestException('Aurora has already confirmed the minutes');
+          }
+          event.minutes.confirmedByAurora = true as any;
+        }
+        event.markModified('minutes');
+        break;
+      default:
+        throw new BadRequestException('Invalid action');
+    }
     const updated = await event.save();
     return this.toEventResponse(updated);
   }
