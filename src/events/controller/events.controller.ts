@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { EventService } from "../service/events.service";
 import { AuthGuard } from "@nestjs/passport";
 import { DbRolesGuard } from "src/common/guards/roles.guard";
 import { Roles } from "src/common/decorator/role.decorator";
 import { Role } from "src/common/enum/enum";
-import { CreateEventDto } from "../dto/events.dto";
+import { CreateEventDto, UpdateEventDto } from "../dto/events.dto";
 @Controller('/events')
 export class EventController {
   constructor(
@@ -18,6 +18,16 @@ export class EventController {
   }
   @Get('/')
   async getAllEvents(@Query('month') month?: string, @Query('year') year?: string, @Req() req?: any) {
-    return this.eventService.getAllEvents(req?.user,month ? parseInt(month) : undefined,year ? parseInt(year) : undefined );
+    return this.eventService.getAllEvents(req?.user, month ? parseInt(month) : undefined, year ? parseInt(year) : undefined);
+  }
+  @Get(':id')
+  async getEventById(@Param('id') id: string, @Req() req: any,) {
+    return this.eventService.getEventById(id, req.user ?? null);
+  }
+  @Put(':id')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN)
+  async updateEvent(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto, @Req() req: any) {
+    return this.eventService.updateEvent(id, updateEventDto, req.user);
   }
 }
