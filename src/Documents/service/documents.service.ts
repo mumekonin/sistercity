@@ -375,7 +375,7 @@ export class DocumentsService {
         // Cannot change access of archived document
         if (doc.isArchived) {
           throw new BadRequestException('Cannot change access level of an archived document'
-);
+          );
         }
 
         // accessLevel required
@@ -385,9 +385,9 @@ export class DocumentsService {
 
         // Dept Officer can only change their own document
         if (currentUser.role === Role.DEPT_OFFICER) {
-          if (doc.city !== currentUser.city ||doc.department !== currentUser.department
+          if (doc.city !== currentUser.city || doc.department !== currentUser.department
           ) {
-            throw new ForbiddenException( 'You can only change access of your own department documents' );
+            throw new ForbiddenException('You can only change access of your own department documents');
           }
         }
         doc.accessLevel = updateDocumentDto.accessLevel;
@@ -405,5 +405,77 @@ export class DocumentsService {
     doc.markModified('activityLog');
     const updatedDoc = await doc.save();
     return this.mapToResponse(updatedDoc);
+  }
+  async downloadDocument(documentId: string, currentUser: any): Promise<{ fileUrl: string; fileName: string; fileType: string; fileSize: number }> {
+    const doc = await this.documentModel.findById(documentId).lean();
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+
+    // Document must not be archived 
+    if (doc.isArchived) {
+      throw new NotFoundException('Document not found');
+    }
+    // Super Admin  can download anything
+    if (currentUser.role === Role.SUPER_ADMIN) {
+      // no restriction
+    }
+
+    // City Admin
+    else if (currentUser.role === Role.CITY_ADMIN) {
+
+      // Own city  always allowed
+      if (doc.city === currentUser.city) {
+        //their own city allowed and  Other city  check access level
+      } else {
+        if (doc.accessLevel === AccessLevel.DEPARTMENT_ONLY || doc.accessLevel === AccessLevel.ADMINS_ONLY || doc.accessLevel === AccessLevel.OWN_CITY_ONLY) {
+          throw new ForbiddenException('You do not have permission to download this document');
+        }
+      }
+    }
+    else if (currentUser.role === Role.DEPT_OFFICER) {
+      // Own department  allowed
+      if (doc.city === currentUser.city &&doc.department === currentUser.department) {
+        // Same city — PUBLIC, BOTH_CITIES, OWN_CITY_ONLY
+      } else if (doc.city === currentUser.city &&
+        (
+          doc.accessLevel === AccessLevel.PUBLIC ||
+          doc.accessLevel === AccessLevel.BOTH_CITIES ||
+          doc.accessLevel === AccessLevel.OWN_CITY_ONLY
+        )
+      ) {
+        // Other city  only PUBLIC and BOTH_CITIES
+      } else if (
+        doc.city !== currentUser.city &&
+        (
+          doc.accessLevel === AccessLevel.PUBLIC ||
+          doc.accessLevel === AccessLevel.BOTH_CITIES
+        )
+      ) {
+        // Everything else  blocked
+      } else {
+        throw new ForbiddenException('You do not have permission to download this document');
+      }
+    }
+
+    //Record DOWNLOADED in activityLog 
+    await this.documentModel.findByIdAndUpdate(
+      documentId,
+      {
+        $push: {
+          activityLog: {
+            userId: currentUser.userId,
+            action: 'DOWNLOADED',
+            timestamp: new Date(),
+          }
+        }
+      }
+    );
+    return {
+      fileUrl: doc.fileUrl,
+      fileName: doc.fileName,
+      fileType: doc.fileType,
+      fileSize: doc.fileSize,
+    };
   }
 }

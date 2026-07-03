@@ -41,8 +41,13 @@ export class DocumentsController {
   }
   @Patch('/:id')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN)
+  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
   async updateDocument(@Param('id') id: string, @Body() updateDocumentDto: UpdateDocumentDto, @Req() req: any) {
     return this.documentsService.updateDocument(id, updateDocumentDto, req.user);
+  }
+  @Get('/:id/download')
+  @UseGuards(AuthGuard('jwt'))
+  async downloadDocument(@Param('id') id: string,@Req() req: anyq) {
+    return this.documentsService.downloadDocument(id, req.user);
   }
 }
