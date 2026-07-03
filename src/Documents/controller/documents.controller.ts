@@ -47,7 +47,7 @@ export class DocumentsController {
   }
   @Get('/:id/download')
   @UseGuards(AuthGuard('jwt'))
-  async downloadDocument(@Param('id') id: string,@Req() req: anyq) {
+  async downloadDocument(@Param('id') id: string,@Req() req: any) {
     return this.documentsService.downloadDocument(id, req.user);
   }
 }
