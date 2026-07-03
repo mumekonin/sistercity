@@ -3,8 +3,8 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { Event } from "../schema/events.schema";
 import { CreateEventDto } from "../dto/events.dto";
-import { EventResponse } from "../response/events.response";
-import { EventStatus } from "src/common/enum/enum";
+import { EventListResponse, EventResponse } from "../response/events.response";
+import { EventStatus, Role } from "src/common/enum/enum";
 @Injectable()
 export class EventService {
   constructor(
@@ -68,6 +68,48 @@ export class EventService {
       },
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
+    };
+  }
+  async getAllEvents(currentUser: any, month?: number, year?: number): Promise<EventListResponse[]> {
+    let filter: any = {};
+
+    if (month && year) {
+      const startOfMonth = new Date(year, month - 1, 1);
+      const endOfMonth = new Date(year, month, 0);
+      filter.startDate = { $gte: startOfMonth, $lte: endOfMonth };
+    }
+
+    // PUBLIC or no login
+    if (!currentUser || currentUser.role === 'PUBLIC') {
+      filter.isPublic = true;
+      filter.status = { $ne: EventStatus.CANCELLED };
+    }
+
+    // DEPT_OFFICER and CITY_ADMIN
+    else if (currentUser.role !== Role.SUPER_ADMIN) {
+      filter.$or = [
+        { hostCity: currentUser.city }, { organizerCity: currentUser.city }, { isPublic: true }
+      ];
+    }
+    const events = await this.eventModel.find(filter).sort({ startDate: 1 }).lean();
+
+    if (!events || events.length === 0) return [];
+
+    return events.map((e) => this.toEventListResponse(e));
+  }
+  private toEventListResponse(event: any): EventListResponse {
+    return {
+      id: event._id.toString(),
+      title: event.title,
+      eventType: event.eventType,
+      hostCity: event.hostCity,
+      venue: event.venue,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      isPublic: event.isPublic,
+      status: event.status,
+      organizerCity: event.organizerCity,
+      createdAt: event.createdAt,
     };
   }
 }
