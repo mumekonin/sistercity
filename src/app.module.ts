@@ -10,6 +10,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { DocumentsModule } from './Documents/documents.module';
 import { CommunicationModule } from './communication/communication.module';
 import {EventsModule } from './events/events.module';
+import { NewsModule } from './news/news.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -25,7 +26,8 @@ import {EventsModule } from './events/events.module';
     CityProfileModule,
     DocumentsModule,
     CommunicationModule,
-    EventsModule
+    EventsModule,
+    NewsModule
   ],
   controllers: [AppController],
   providers: [AppService , JwtStrategy],

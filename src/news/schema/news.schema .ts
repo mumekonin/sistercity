@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { City, NewsCategory, NewsApprovalStatus, NewsPostedByCity } from '../../common/enum/enum';
+import { NewsCategory, NewsApprovalStatus, NewsPostedByCity } from '../../common/enum/enum';
 
 @Schema({ timestamps: true })
 export class News extends Document {
@@ -38,7 +38,7 @@ export class News extends Document {
   approvedByAdama!: boolean;
 
   @Prop({ default: false })
-  approvedBySheger!: boolean;
+  approvedByAurora!: boolean;
 
   @Prop({ default: null, type: Date })
   publishedAt!: Date | null;

@@ -12,7 +12,7 @@ export class NewsResponse {
   relatedProject?: string | null;
   approvalStatus?: NewsApprovalStatus;
   approvedByAdama?: boolean;
-  approvedBySheger?: boolean;
+  approvedByAurora?: boolean;
   publishedAt?: Date | null;
   views?: number;
   createdAt?: Date;
