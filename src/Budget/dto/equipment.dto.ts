@@ -1,33 +1,40 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { City, EquipmentStatus } from '../../common/enum/enum';
+import { IsString, IsNotEmpty, IsEnum, IsNumber, IsDate, IsOptional, Min, } from 'class-validator';
+import { Type } from 'class-transformer';
+import { EquipmentStatus } from '../../common/enum/enum';
 
-@Schema({ timestamps: true })
-export class Equipment extends Document {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Project' })
-  project!: Types.ObjectId;
-  @Prop({ required: true })
+export class CreateEquipmentDto {
+
+  @IsString()
+  @IsNotEmpty()
   itemName!: string;
-  @Prop({ required: true })
-  description!: string;
-  @Prop({ required: true, enum: City })
-  providedBy!: City;
-  @Prop({ required: true })
-  quantity!: number;
-  @Prop({ required: true })
-  estimatedValue!: number;
-  @Prop({ required: true })
-  providedDate!: Date;
-  @Prop({ required: true, enum: EquipmentStatus, default: EquipmentStatus.AVAILABLE })
-  status!: EquipmentStatus;
-  @Prop({ default: null, type: String })
-  damagedNote!: string | null;
-  @Prop({ default: null, type: Date })
-  returnedDate!: Date | null;
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
-  recordedBy!: Types.ObjectId;
-  createdAt!: Date;
-  updatedAt!: Date;
-}
 
-export const EquipmentSchema = SchemaFactory.createForClass(Equipment);
+  @IsString()
+  @IsNotEmpty()
+  description!: string;
+
+  @IsNumber()
+  @Min(1)
+  quantity!: number;
+
+  @IsNumber()
+  @Min(1)
+  estimatedValue!: number;
+
+  @IsDate()
+  @Type(() => Date)
+  providedDate!: Date;
+}
+export class UpdateEquipmentDto {
+  @IsEnum(EquipmentStatus)
+  @IsNotEmpty()
+  status!: EquipmentStatus;
+
+  @IsOptional()
+  @IsString()
+  damagedNote?: string;
+  
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  returnedDate?: Date;
+}
