@@ -72,7 +72,7 @@ export class UpdateEventDto {
   @IsNotEmpty()
   @IsString()
   @IsIn(['update', 'cancel', 'add-agenda', 'upload-minutes'])
-  action!: 'update' | 'cancel' | 'add-agenda' | 'upload-minutes';
+  action?: 'update' | 'cancel' | 'add-agenda' | 'upload-minutes';
 
   // for update action
   @IsOptional()
@@ -128,7 +128,7 @@ export class ConfirmMinutesDto {
   @IsIn(['upload', 'confirm'])
   action!: 'upload' | 'confirm';
 
-  @IsOptional()
+  @IsOptional() 
   @ValidateNested()
   @Type(() => MinutesDto)
   minutes?: MinutesDto;

@@ -64,7 +64,7 @@ export class EventService {
         summary: event.minutes?.summary ?? null,
         decisions: event.minutes?.decisions ?? [],
         confirmedByAdama: event.minutes?.confirmedByAdama ?? false,
-        confirmedBySheger: event.minutes?.confirmedBySheger ?? false,
+        confirmedByAurora: event.minutes?.confirmedByAurora ?? false,
       },
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,

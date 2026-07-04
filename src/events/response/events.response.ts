@@ -7,7 +7,7 @@ export class MinutesResponse {
   summary?: string | null;
   decisions?: string[];
   confirmedByAdama?: boolean;
-  confirmedBySheger?: boolean;
+  confirmedByAurora?: boolean;
 }
 export class EventResponse {
   id?: string;
