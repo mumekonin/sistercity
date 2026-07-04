@@ -73,7 +73,7 @@ export enum Responsible {
   SHEGER = 'AURORA',
   BOTH = 'BOTH'
 }
-
+//document enums
 export enum DocumentCategory {
   LEGAL = 'LEGAL',
   PROJECT = 'PROJECT',
@@ -97,6 +97,7 @@ export enum DocumentApprovalStatus {
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED'
 }
+//message enums
 export enum MessageType {
   REQUEST = 'REQUEST',
   RESPONSE = 'RESPONSE',
@@ -121,6 +122,7 @@ export enum MessageStatus {
   ESCALATED = 'ESCALATED',
   CLOSED = 'CLOSED',
 }
+//event enums
 export enum EventType {
   WORKSHOP = 'WORKSHOP',
   OFFICIAL_VISIT = 'OFFICIAL_VISIT',
@@ -157,4 +159,26 @@ export enum EquipmentStatus {
   IN_USE = 'IN_USE',
   RETURNED = 'RETURNED',
   DAMAGED = 'DAMAGED',
+}
+//news enums
+export enum NewsCategory {
+  ACHIEVEMENT = 'ACHIEVEMENT',
+  NEW_AGREEMENT = 'NEW_AGREEMENT',
+  PROJECT_UPDATE = 'PROJECT_UPDATE',
+  EVENT_ANNOUNCEMENT = 'EVENT_ANNOUNCEMENT',
+  JOINT_STATEMENT = 'JOINT_STATEMENT',
+  CULTURAL_HIGHLIGHT = 'CULTURAL_HIGHLIGHT',
+}
+
+export enum NewsApprovalStatus {
+  DRAFT = 'DRAFT',
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export enum NewsPostedByCity {
+  ADAMA = 'ADAMA',
+  SHEGER = 'AURORA',
+  JOINT = 'JOINT',
 }
