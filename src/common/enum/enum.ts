@@ -136,3 +136,25 @@ export enum EventStatus {
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
+
+export enum ExpenditureStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export enum ExpenditureCategory {
+  PERSONNEL = 'PERSONNEL',
+  MATERIALS = 'MATERIALS',
+  TRANSPORT = 'TRANSPORT',
+  ADMINISTRATION = 'ADMINISTRATION',
+  CONTINGENCY = 'CONTINGENCY',
+  OTHER = 'OTHER',
+}
+
+export enum EquipmentStatus {
+  AVAILABLE = 'AVAILABLE',
+  IN_USE = 'IN_USE',
+  RETURNED = 'RETURNED',
+  DAMAGED = 'DAMAGED',
+}
