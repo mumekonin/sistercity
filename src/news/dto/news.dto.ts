@@ -1,5 +1,6 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsBoolean, IsMongoId, IsArray, IsIn, } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsBoolean, IsMongoId, IsArray, IsIn } from 'class-validator';
 import { NewsCategory } from '../../common/enum/enum';
+import { Transform } from 'class-transformer';
 export class CreateNewsDto {
   @IsNotEmpty()
   @IsString()
@@ -20,10 +21,12 @@ export class CreateNewsDto {
 
   @IsNotEmpty()
   @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
   isPublic!: boolean;
 
   @IsNotEmpty()
   @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
   isJoint!: boolean;
 
   @IsOptional()
@@ -34,10 +37,27 @@ export class CreateNewsDto {
 export class UpdateNewsDto {
   @IsNotEmpty()
   @IsString()
-  @IsIn(['approve', 'reject', 'publish', 'unpublish'])
-  action!: 'approve' | 'reject' | 'publish' | 'unpublish';
+  @IsIn(['approve', 'reject', 'publish', 'unpublish', 'edit'])
+  action!: 'approve' | 'reject' | 'publish' | 'unpublish' | 'edit';
 
   @IsOptional()
   @IsString()
   rejectionReason?: string;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsEnum(NewsCategory)
+  category?: NewsCategory;
+
+  @IsOptional()
+  @IsString()
+  body?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  isPublic?: boolean;
 }

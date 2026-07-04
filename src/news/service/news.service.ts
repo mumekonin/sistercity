@@ -1,11 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { News } from "../schema/news.schema ";
 import { Model } from "mongoose";
 import { CloudinaryService } from "src/common/cloudinary/cloudinary.service";
-import { CreateNewsDto } from "../dto/news.dto";
+import { CreateNewsDto, UpdateNewsDto } from "../dto/news.dto";
 import { NewsResponse } from "../response/new.response";
-import { NewsApprovalStatus, NewsPostedByCity } from "src/common/enum/enum";
+import { City, NewsApprovalStatus, NewsPostedByCity } from "src/common/enum/enum";
 
 @Injectable()
 export class NewsService {
@@ -66,4 +66,112 @@ export class NewsService {
       updatedAt: news.updatedAt,
     };
   }
+  async updateNews(id: string,updateNewsDto: UpdateNewsDto,files: Express.Multer.File[],currentUser: any): Promise<NewsResponse> {
+  const news = await this.newsModel.findById(id);
+  if (!news) throw new NotFoundException('News not found');
+
+  switch (updateNewsDto.action) {
+
+    case 'edit':
+      // can only edit DRAFT or REJECTED articles
+      if (
+        (news.approvalStatus as any) === NewsApprovalStatus.APPROVED ||
+        news.publishedAt !== null
+      ) {
+        throw new BadRequestException('Cannot edit an approved or published article');
+      }
+
+      // new images sent  delete old + upload new
+      if (files && files.length > 0) {
+        if (news.images && news.images.length > 0) {
+          await Promise.all(
+            news.images.map((url: string) =>
+              this.cloudinaryService.deleteFile(url),
+            ),
+          );
+        }
+        const uploadPromises = files.map((file) =>
+          this.cloudinaryService.uploadFile(file, 'news'),
+        );
+        const uploaded = await Promise.all(uploadPromises);
+        news.images = uploaded.map((img) => img.fileUrl) as any;
+      }
+      // no images sent → keep old images 
+
+      if (updateNewsDto.title) news.title = updateNewsDto.title;
+      if (updateNewsDto.category) news.category = updateNewsDto.category as any;
+      if (updateNewsDto.body) news.body = updateNewsDto.body;
+      if (updateNewsDto.isPublic !== undefined) news.isPublic = updateNewsDto.isPublic;
+
+      // reset approval when edited
+      news.approvalStatus = NewsApprovalStatus.DRAFT as any;
+      news.approvedByAdama = false;
+      news.approvedByAurora = false;
+      break;
+
+    case 'approve':
+      if (
+        (news.approvalStatus as any) !== NewsApprovalStatus.DRAFT &&
+        (news.approvalStatus as any) !== NewsApprovalStatus.PENDING_APPROVAL
+      ) {
+        throw new BadRequestException(`Cannot approve news with status ${news.approvalStatus}`);
+      }
+
+      if (news.isJoint) {
+        if (currentUser.city === City.ADAMA) {
+          if (news.approvedByAdama) {
+            throw new BadRequestException('Adama has already approved this article');
+          }
+          news.approvedByAdama = true;
+        }
+
+        if (currentUser.city === City.AURORA) {
+          if (news.approvedByAurora) {
+            throw new BadRequestException('Aurora has already approved this article' );
+          }
+          news.approvedByAurora = true;
+        }
+
+        // both approved 
+        if (news.approvedByAdama && news.approvedByAurora) {
+          news.approvalStatus = NewsApprovalStatus.APPROVED as any;
+        }
+
+      } else {
+        // single city  direct approve
+        news.approvalStatus = NewsApprovalStatus.APPROVED as any;
+      }
+      break;
+
+    case 'reject':
+      if (!updateNewsDto.rejectionReason) {
+        throw new BadRequestException('Rejection reason is required');
+      }
+      if ((news.approvalStatus as any) === NewsApprovalStatus.APPROVED) {
+        throw new BadRequestException('Cannot reject an already approved article');
+      }
+      news.approvalStatus = NewsApprovalStatus.REJECTED as any;
+      break;
+
+    case 'publish':
+      if ((news.approvalStatus as any) !== NewsApprovalStatus.APPROVED) {
+        throw new BadRequestException('Article must be APPROVED before publishing');
+      }
+      news.publishedAt = new Date() as any;
+      break;
+
+    case 'unpublish':
+      if (!news.publishedAt) {
+        throw new BadRequestException('Article is not published yet');
+      }
+      news.publishedAt = null as any;
+      break;
+
+    default:
+      throw new BadRequestException('Invalid action');
+  }
+
+  const updated = await news.save();
+  return this.toNewsResponse(updated);
+}
 }
