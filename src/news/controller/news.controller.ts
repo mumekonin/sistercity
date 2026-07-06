@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards, UseInterceptors, UploadedFiles, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, UseInterceptors, UploadedFiles, Patch, Param, Get, Query } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { DbRolesGuard } from 'src/common/guards/roles.guard';
@@ -20,9 +20,13 @@ export class NewsController {
   }
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN)
+  @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
   @UseInterceptors(FilesInterceptor('images', 5))
   async updateNews(@Param('id') id: string, @Body() updateNewsDto: UpdateNewsDto, @UploadedFiles() files: Express.Multer.File[], @Req() req: any) {
     return this.newsService.updateNews(id, updateNewsDto, files, req.user);
+  }
+  @Get('/')
+  async getAllNews(@Query('category') category?: string, @Query('city') city?: string, @Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.newsService.getAllNews(category, city, page ? parseInt(page) : 1, limit ? parseInt(limit) : 10,);
   }
 }
