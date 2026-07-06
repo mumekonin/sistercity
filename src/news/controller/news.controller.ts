@@ -6,15 +6,13 @@ import { Roles } from 'src/common/decorator/role.decorator';
 import { Role } from '../../common/enum/enum';
 import { NewsService } from '../service/news.service';
 import { CreateNewsDto, UpdateNewsDto } from '../dto/news.dto';
-
 @Controller('/news')
 export class NewsController {
   constructor(private readonly newsService: NewsService) { }
-
   @Post('/')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
-  @UseInterceptors(FilesInterceptor('images', 5)) // ← max 5 images
+  @UseInterceptors(FilesInterceptor('images', 5)) 
   async createNews(@Body() createNewsDto: CreateNewsDto, @UploadedFiles() files: Express.Multer.File[], @Req() req: any) {
     return this.newsService.createNews(createNewsDto, files, req.user);
   }
