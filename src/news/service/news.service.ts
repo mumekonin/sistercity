@@ -200,4 +200,14 @@ export class NewsService {
       createdAt: news.createdAt,
     };
   }
+  async getNewsById(id: string): Promise<NewsResponse> {
+    const news = await this.newsModel.findById(id).lean();
+    if (!news) throw new NotFoundException('News not found');
+    if (!news.publishedAt || !news.isPublic) {
+      throw new ForbiddenException('This article is not available');
+    }
+    await this.newsModel.findByIdAndUpdate(id, { $inc: { views: 1 } });
+    news.views = news.views + 1;
+    return this.toNewsResponse(news);
+  }
 }

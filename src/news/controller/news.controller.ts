@@ -29,4 +29,8 @@ export class NewsController {
   async getAllNews(@Query('category') category?: string, @Query('city') city?: string, @Query('page') page?: string, @Query('limit') limit?: string) {
     return this.newsService.getAllNews(category, city, page ? parseInt(page) : 1, limit ? parseInt(limit) : 10,);
   }
+  @Get(':id')
+  async getNewsById(@Param('id') id: string) {
+    return this.newsService.getNewsById(id);
+  }
 }
