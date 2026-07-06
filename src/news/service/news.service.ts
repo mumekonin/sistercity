@@ -210,4 +210,29 @@ export class NewsService {
     news.views = news.views + 1;
     return this.toNewsResponse(news);
   }
+  async deleteNews(id: string, currentUser: any): Promise<{ message: string }> {
+    const news = await this.newsModel.findById(id);
+    if (!news) throw new NotFoundException('News not found');
+    if (currentUser.role !== Role.SUPER_ADMIN && news.postedByCity !== currentUser.city) {
+      throw new ForbiddenException('You can only delete your own city articles');
+    }
+    // cannot delete published article
+    if (news.publishedAt) {
+      throw new BadRequestException('Cannot delete a published article');
+    }
+    // delete images from Cloudinary
+    if (news.images && news.images.length > 0) {
+      try {
+        await Promise.all(
+          news.images.map((url: string) =>
+            this.cloudinaryService.deleteFile(url),
+          ),
+        );
+      } catch (error) {
+        console.warn('Failed to delete images from Cloudinary:', error);
+      }
+    }
+    await this.newsModel.findByIdAndDelete(id);
+    return { message: `Article "${news.title}" deleted successfully` };
+  }
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards, UseInterceptors, UploadedFiles, Patch, Param, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, UseInterceptors, UploadedFiles, Patch, Param, Get, Query, Delete } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { DbRolesGuard } from 'src/common/guards/roles.guard';
@@ -32,5 +32,11 @@ export class NewsController {
   @Get(':id')
   async getNewsById(@Param('id') id: string) {
     return this.newsService.getNewsById(id);
+  }
+  @Delete(':id')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN)
+  async deleteNews(@Param('id') id: string, @Req() req: any): Promise<{ message: string }> {
+    return this.newsService.deleteNews(id, req.user);
   }
 }
