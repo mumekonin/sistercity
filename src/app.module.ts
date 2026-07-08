@@ -7,11 +7,11 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import {JwtStrategy}  from "./common/guards/jwt.strategy";
 import { CityProfileModule } from './cities/cityProfile.module';
 import { ProjectsModule } from './projects/projects.module';
-import { DocumentsModule } from './Documents/documents.module';
+import { DocumentsModule } from './documents/documents.module';
 import { CommunicationModule } from './communication/communication.module';
 import {EventsModule } from './events/events.module';
 import { NewsModule } from './news/news.module';
-import { BudgetModule } from './Budget/budget.module';
+import { BudgetModule } from './budget/budget.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),

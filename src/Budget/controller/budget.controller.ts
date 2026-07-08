@@ -6,7 +6,7 @@ import { Roles } from 'src/common/decorator/role.decorator';
 import { Role } from '../../common/enum/enum';
 import { CreateExpenditureDto, UpdateExpenditureDto } from '../dto/budget.dto';
 import { multerConfig } from '../../common/cloudinary/multer.config';
-import { BudgetService } from '../service/budget.servicee';
+import { BudgetService } from '../service/budget.service';
 import { CreateEquipmentDto, UpdateEquipmentDto } from '../dto/equipment.dto';
 
 @Controller('/budgets')
