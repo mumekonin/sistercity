@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { Budget } from '../schema/budget.schema';
 import { Equipment } from '../schema/equipment.schema';
 import { Project } from '../../projects/schema/projects.schema';
-import { CreateExpenditureDto } from '../dto/budget.dto';
+import { CreateExpenditureDto, UpdateExpenditureDto } from '../dto/budget.dto';
 import { BudgetResponse } from '../response/budget.response';
 import { Role, City, ProjectStatus, ExpenditureStatus, } from '../../common/enum/enum';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
@@ -65,7 +65,7 @@ export class BudgetService {
     let budget = await this.budgetModel.findOne({ project: projectId });
 
     if (!budget) {
-      budget = new this.budgetModel({ project: projectId,spentAdama: 0, spentAurora: 0, spentTotal: 0, expenditures: [],});
+      budget = new this.budgetModel({ project: projectId, spentAdama: 0, spentAurora: 0, spentTotal: 0, expenditures: [], });
     }
     budget.expenditures.push({
       city: currentUser.city,
@@ -121,54 +121,123 @@ export class BudgetService {
       updatedAt: budget.updatedAt,
     };
   }
-  async getBudgetByProject(projectId: string,currentUser: any): Promise<BudgetResponse> {
+  async getBudgetByProject(projectId: string, currentUser: any): Promise<BudgetResponse> {
 
-  const project = await this.projectModel.findById(projectId).lean();
+    const project = await this.projectModel.findById(projectId).lean();
 
-  if (!project) {
-    throw new NotFoundException('Project not found');
-  }
-  if (currentUser.role === Role.DEPT_OFFICER) {
-    const isAssigned =
-      (currentUser.city === City.ADAMA &&
-       project.adama?.department === currentUser.department) ||
-      (currentUser.city === City.AURORA &&
-       project.aurora?.department === currentUser.department);
-
-    if (!isAssigned) {
-      throw new ForbiddenException('You are not assigned to this project');
+    if (!project) {
+      throw new NotFoundException('Project not found');
     }
-  }
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      const isAssigned =
+        (currentUser.city === City.ADAMA &&
+          project.adama?.department === currentUser.department) ||
+        (currentUser.city === City.AURORA &&
+          project.aurora?.department === currentUser.department);
 
-  if (currentUser.role === Role.CITY_ADMIN) {
+      if (!isAssigned) {
+        throw new ForbiddenException('You are not assigned to this project');
+      }
+    }
+
+    if (currentUser.role === Role.CITY_ADMIN) {
+      const isInvolved =
+        project.proposedBy === currentUser.city ||
+        (currentUser.city === City.ADAMA && project.adama !== null) ||
+        (currentUser.city === City.AURORA && project.aurora !== null);
+
+      if (!isInvolved) {
+        throw new ForbiddenException('You can only view budgets for projects involving your city');
+      }
+    }
+    const budget = await this.budgetModel.findOne({ project: projectId }).lean();
+    if (!budget) {
+      return {
+        id: null,
+        project: projectId,
+        plannedAdama: project.budgetAdama,
+        plannedAurora: project.budgetAurora,
+        plannedTotal: project.budgetTotal,
+        spentAdama: 0,
+        spentAurora: 0,
+        spentTotal: 0,
+        remainingAdama: project.budgetAdama,
+        remainingAurora: project.budgetAurora,
+        remainingTotal: project.budgetTotal,
+        expenditures: [],
+        createdAt: null,
+        updatedAt: null,
+      };
+    }
+    return this.mapToResponse(budget, project);
+  }
+  async updateExpenditure(projectId: string, expenditureId: string, updateExpenditureDto: UpdateExpenditureDto, currentUser: any): Promise<BudgetResponse> {
+    const project = await this.projectModel.findById(projectId).lean();
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
     const isInvolved =
       project.proposedBy === currentUser.city ||
-      (currentUser.city === City.ADAMA  && project.adama  !== null) ||
+      (currentUser.city === City.ADAMA && project.adama !== null) ||
       (currentUser.city === City.AURORA && project.aurora !== null);
-
     if (!isInvolved) {
-      throw new ForbiddenException('You can only view budgets for projects involving your city');
+      throw new ForbiddenException('You can only manage expenditures for projects involving your city');
     }
+    const budget = await this.budgetModel.findOne({ project: projectId });
+
+    if (!budget) {
+      throw new NotFoundException('No budget found for this project');
+    }
+    const expenditureIndex = budget.expenditures.findIndex((e: any) => e._id.toString() === expenditureId);
+    if (expenditureIndex === -1) {
+      throw new NotFoundException('Expenditure not found');
+    }
+    const expenditure = budget.expenditures[expenditureIndex];
+    // Only PENDING can be approved or rejected 
+    if (expenditure.status !== ExpenditureStatus.PENDING) {
+      throw new BadRequestException(
+        `Cannot update an expenditure with status ${expenditure.status}`
+      );
+    }
+    //  City Admin approves city expenditures
+    if (expenditure.city !== currentUser.city) {
+      throw new ForbiddenException('You can only approve expenditures from your own city');
+    }
+    switch (updateExpenditureDto.action) {
+      case 'approve': {
+        budget.expenditures[expenditureIndex].status =
+          ExpenditureStatus.APPROVED as any;
+        budget.expenditures[expenditureIndex].approvedBy =
+          currentUser.userId as any;
+        budget.expenditures[expenditureIndex].approvedAt =
+          new Date() as any;
+        // Update spent totals only when approved
+        if (expenditure.city === City.ADAMA) {
+          budget.spentAdama += expenditure.amount;
+        }
+        if (expenditure.city === City.AURORA) {
+          budget.spentAurora += expenditure.amount;
+        }
+        budget.spentTotal = budget.spentAdama + budget.spentAurora;
+        break;
+      }
+      case 'reject': {
+        // Rejection reason required
+        if (!updateExpenditureDto.rejectionReason) {
+          throw new BadRequestException('Rejection reason is required when rejecting an expenditure');
+        }
+        budget.expenditures[expenditureIndex].status = ExpenditureStatus.REJECTED as any;
+        budget.expenditures[expenditureIndex].rejectionReason = updateExpenditureDto.rejectionReason as any;
+        break;
+      }
+      default: {
+        throw new BadRequestException(`Unknown action: ${updateExpenditureDto.action}`);
+      }
+    }
+    budget.markModified('expenditures');
+    const updatedBudget = await budget.save();
+    return this.mapToResponse(updatedBudget, project);
   }
-  const budget = await this.budgetModel.findOne({ project: projectId }).lean();
-  if (!budget) {
-    return {
-      id:              null ,
-      project:         projectId,
-      plannedAdama:    project.budgetAdama,
-      plannedAurora:   project.budgetAurora,
-      plannedTotal:    project.budgetTotal,
-      spentAdama:      0,
-      spentAurora:     0,
-      spentTotal:      0,
-      remainingAdama:  project.budgetAdama,
-      remainingAurora: project.budgetAurora,
-      remainingTotal:  project.budgetTotal,
-      expenditures:    [],
-      createdAt:null,
-      updatedAt:       null,
-    };
-  }
-  return this.mapToResponse(budget, project);
-}
+
 }
