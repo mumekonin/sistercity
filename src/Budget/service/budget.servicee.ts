@@ -5,7 +5,7 @@ import { Budget } from '../schema/budget.schema';
 import { Equipment } from '../schema/equipment.schema';
 import { Project } from '../../projects/schema/projects.schema';
 import { CreateExpenditureDto, UpdateExpenditureDto } from '../dto/budget.dto';
-import { BudgetResponse } from '../response/budget.response';
+import { BudgetResponse, BudgetSummaryResponse } from '../response/budget.response';
 import { Role, City, ProjectStatus, ExpenditureStatus, } from '../../common/enum/enum';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 
@@ -239,5 +239,42 @@ export class BudgetService {
     const updatedBudget = await budget.save();
     return this.mapToResponse(updatedBudget, project);
   }
+  async getBudgetSummary(currentUser: any): Promise<BudgetSummaryResponse[]> {
+    let projects: any[] = [];
+    if (currentUser.role === Role.SUPER_ADMIN) {
+      projects = await this.projectModel.find({ status: ProjectStatus.IN_PROGRESS }).lean();
+    }
+    if (currentUser.role === Role.CITY_ADMIN) {
+      projects = await this.projectModel
+        .find({
+          status: ProjectStatus.IN_PROGRESS,
+          $or: [
+            { proposedBy: currentUser.city },
+            { 'adama.department': { $exists: true, $ne: null }, proposedBy: City.AURORA },
+            { 'aurora.department': { $exists: true, $ne: null }, proposedBy: City.ADAMA, }
+          ]
+        }).lean();
+    }
+    if (!projects || projects.length === 0) return [];
+    //Get budgets for all projects 
+    const projectIds = projects.map((p: any) => p._id);
+    const budgets = await this.budgetModel.find({ project: { $in: projectIds } }).lean();
 
+    return projects.map((project: any) => {
+      const budget = budgets.find((b: any) => b.project.toString() === project._id.toString());
+      const spentTotal = budget ? budget.spentTotal : 0;
+      const plannedTotal = project.budgetTotal;
+      const remainingTotal = plannedTotal - spentTotal;
+      const percentageUsed = plannedTotal === 0 ? 0 : Math.round((spentTotal / plannedTotal) * 100);
+      return {
+        projectId: project._id.toString(),
+        projectTitle: project.title,
+        plannedTotal,
+        spentTotal,
+        remainingTotal,
+        percentageUsed,
+        isOverBudget: spentTotal > plannedTotal,
+      };
+    });
+  }
 }

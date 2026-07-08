@@ -34,5 +34,10 @@ export class BudgetController {
   async updateExpenditure(@Param('projectId') projectId: string, @Param('eid') eid: string, @Body() updateExpenditureDto: UpdateExpenditureDto, @Req() req: any) {
     return this.budgetService.updateExpenditure(projectId, eid, updateExpenditureDto, req.user);
   }
-
+  @Get('/summary')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
+  async getBudgetSummary(@Req() req: any) {
+    return this.budgetService.getBudgetSummary(req.user);
+  }
 }
