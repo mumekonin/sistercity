@@ -1,4 +1,4 @@
-import {  City,  MessageType,  MessagePriority,  MessageStatus,} from '../../common/enum/enum';
+import { City, MessageType, MessagePriority, MessageStatus, } from '../../common/enum/enum';
 export class MessageFromResponse {
   userId?: string;
   city?: City;
@@ -49,7 +49,7 @@ export class MessageResponse {
 export class MessageListResponse {
   id?: string;
   referenceNumber?: string;
-  threadId?: string | null;  
+  threadId?: string | null;
   subject?: string;
   messageType?: MessageType;
   priority?: MessagePriority;
