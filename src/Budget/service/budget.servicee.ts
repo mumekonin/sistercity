@@ -8,7 +8,7 @@ import { CreateExpenditureDto, UpdateExpenditureDto } from '../dto/budget.dto';
 import { BudgetResponse, BudgetSummaryResponse, EquipmentResponse } from '../response/budget.response';
 import { Role, City, ProjectStatus, ExpenditureStatus, EquipmentStatus, } from '../../common/enum/enum';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
-import { CreateEquipmentDto } from '../dto/equipment.dto';
+import { CreateEquipmentDto, UpdateEquipmentDto } from '../dto/equipment.dto';
 
 @Injectable()
 export class BudgetService {
@@ -356,5 +356,45 @@ export class BudgetService {
     const equipment = await this.equipmentModel.find({ project: projectId }).lean();
     if (!equipment || equipment.length === 0) return [];
     return equipment.map((e: any) => this.mapToEquipmentResponse(e));
+  }
+  async updateEquipment(equipmentId: string, updateEquipmentDto: UpdateEquipmentDto, currentUser: any): Promise<EquipmentResponse> {
+    const equipment = await this.equipmentModel.findById(equipmentId);
+    if (!equipment) {
+      throw new NotFoundException('Equipment not found');
+    }
+    if (equipment.providedBy !== currentUser.city) {
+      throw new ForbiddenException('You can only update equipment provided by your own city');
+    }
+    const allowedTransitions: Record<string, EquipmentStatus[]> = {
+      [EquipmentStatus.AVAILABLE]: [EquipmentStatus.IN_USE],
+      [EquipmentStatus.IN_USE]: [EquipmentStatus.RETURNED, EquipmentStatus.DAMAGED],
+      [EquipmentStatus.RETURNED]: [EquipmentStatus.AVAILABLE],
+      [EquipmentStatus.DAMAGED]: [EquipmentStatus.RETURNED],
+    };
+    const allowed = allowedTransitions[equipment.status];
+    if (!allowed || !allowed.includes(updateEquipmentDto.status)) {
+      throw new BadRequestException(`Cannot move equipment from ${equipment.status} to ${updateEquipmentDto.status}`);
+    }
+    if (updateEquipmentDto.status === EquipmentStatus.DAMAGED) {
+      if (!updateEquipmentDto.damagedNote) {
+        throw new BadRequestException('damagedNote is required when equipment status is DAMAGED');
+      }
+      equipment.damagedNote = updateEquipmentDto.damagedNote;
+    }
+    if (updateEquipmentDto.status === EquipmentStatus.RETURNED) {
+      if (!updateEquipmentDto.returnedDate) {
+        throw new BadRequestException('returnedDate is required when equipment status is RETURNED');
+      }
+      if (updateEquipmentDto.returnedDate > new Date()) {
+        throw new BadRequestException('Return date cannot be in the future');
+      }
+      equipment.returnedDate = updateEquipmentDto.returnedDate;
+    }
+    if (updateEquipmentDto.status !== EquipmentStatus.DAMAGED) {
+      equipment.damagedNote = null;
+    }
+    equipment.status = updateEquipmentDto.status;
+    const updatedEquipment = await equipment.save();
+    return this.mapToEquipmentResponse(updatedEquipment);
   }
 }

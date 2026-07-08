@@ -7,7 +7,7 @@ import { Role } from '../../common/enum/enum';
 import { CreateExpenditureDto, UpdateExpenditureDto } from '../dto/budget.dto';
 import { multerConfig } from '../../common/cloudinary/multer.config';
 import { BudgetService } from '../service/budget.servicee';
-import { CreateEquipmentDto } from '../dto/equipment.dto';
+import { CreateEquipmentDto, UpdateEquipmentDto } from '../dto/equipment.dto';
 
 @Controller('/budgets')
 export class BudgetController {
@@ -51,5 +51,12 @@ export class BudgetController {
   @UseGuards(AuthGuard('jwt'))
   async getEquipmentByProject(@Param('projectId') projectId: string, @Req() req: any) {
     return this.budgetService.getEquipmentByProject(projectId, req.user);
+  }
+  @Patch('/:id')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN)
+  async updateEquipment(@Param('id') id: string, @Body() updateEquipmentDto: UpdateEquipmentDto, @Req() req: any,
+  ) {
+    return this.budgetService.updateEquipment(id, updateEquipmentDto, req.user);
   }
 }
