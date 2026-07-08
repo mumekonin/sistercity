@@ -14,20 +14,20 @@ export class ExpenditureResponse {
   approvedAt!: Date | null;
 }
 export class BudgetResponse {
-  id!: string;
-  project!: string;               
+  id!: string | null;             
+  project!: string;
   plannedAdama!: number;
   plannedAurora!: number;
   plannedTotal!: number;
   spentAdama!: number;
   spentAurora!: number;
   spentTotal!: number;
-  remainingAdama!: number;      
-  remainingAurora!: number;       
-  remainingTotal!: number;      
+  remainingAdama!: number;
+  remainingAurora!: number;
+  remainingTotal!: number;
   expenditures!: ExpenditureResponse[];
-  createdAt!: Date;
-  updatedAt!: Date;
+  createdAt!: Date | null;       
+  updatedAt!: Date | null;        
 }
 export class BudgetSummaryResponse {
   projectId!: string;

@@ -20,4 +20,12 @@ export class BudgetController {
   async recordExpenditure(@Param('projectId') projectId: string,@UploadedFile() file: any,@Body() createExpenditureDto: CreateExpenditureDto, @Req() req: any) {
     return this.budgetService.recordExpenditure(projectId,createExpenditureDto,file,req.user);
   }
+   @Get('/:projectId')
+  @UseGuards(AuthGuard('jwt'))
+  async getBudgetByProject(
+    @Param('projectId') projectId: string,
+    @Req() req: any,
+  ) {
+    return this.budgetService.getBudgetByProject( projectId,req.user,);
+  }
 }

@@ -121,4 +121,54 @@ export class BudgetService {
       updatedAt: budget.updatedAt,
     };
   }
+  async getBudgetByProject(projectId: string,currentUser: any): Promise<BudgetResponse> {
+
+  const project = await this.projectModel.findById(projectId).lean();
+
+  if (!project) {
+    throw new NotFoundException('Project not found');
+  }
+  if (currentUser.role === Role.DEPT_OFFICER) {
+    const isAssigned =
+      (currentUser.city === City.ADAMA &&
+       project.adama?.department === currentUser.department) ||
+      (currentUser.city === City.AURORA &&
+       project.aurora?.department === currentUser.department);
+
+    if (!isAssigned) {
+      throw new ForbiddenException('You are not assigned to this project');
+    }
+  }
+
+  if (currentUser.role === Role.CITY_ADMIN) {
+    const isInvolved =
+      project.proposedBy === currentUser.city ||
+      (currentUser.city === City.ADAMA  && project.adama  !== null) ||
+      (currentUser.city === City.AURORA && project.aurora !== null);
+
+    if (!isInvolved) {
+      throw new ForbiddenException('You can only view budgets for projects involving your city');
+    }
+  }
+  const budget = await this.budgetModel.findOne({ project: projectId }).lean();
+  if (!budget) {
+    return {
+      id:              null ,
+      project:         projectId,
+      plannedAdama:    project.budgetAdama,
+      plannedAurora:   project.budgetAurora,
+      plannedTotal:    project.budgetTotal,
+      spentAdama:      0,
+      spentAurora:     0,
+      spentTotal:      0,
+      remainingAdama:  project.budgetAdama,
+      remainingAurora: project.budgetAurora,
+      remainingTotal:  project.budgetTotal,
+      expenditures:    [],
+      createdAt:null,
+      updatedAt:       null,
+    };
+  }
+  return this.mapToResponse(budget, project);
+}
 }
