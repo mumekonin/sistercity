@@ -7,6 +7,7 @@ import { Role } from '../../common/enum/enum';
 import { CreateExpenditureDto, UpdateExpenditureDto } from '../dto/budget.dto';
 import { multerConfig } from '../../common/cloudinary/multer.config';
 import { BudgetService } from '../service/budget.servicee';
+import { CreateEquipmentDto } from '../dto/equipment.dto';
 
 @Controller('/budgets')
 export class BudgetController {
@@ -39,5 +40,11 @@ export class BudgetController {
   @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
   async getBudgetSummary(@Req() req: any) {
     return this.budgetService.getBudgetSummary(req.user);
+  }
+  @Post('/:projectId')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN)
+  async addEquipment(@Param('projectId') projectId: string, @Body() createEquipmentDto: CreateEquipmentDto, @Req() req: any) {
+    return this.budgetService.addEquipment(projectId, createEquipmentDto, req.user);
   }
 }

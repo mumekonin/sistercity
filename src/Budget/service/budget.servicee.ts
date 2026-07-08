@@ -5,9 +5,10 @@ import { Budget } from '../schema/budget.schema';
 import { Equipment } from '../schema/equipment.schema';
 import { Project } from '../../projects/schema/projects.schema';
 import { CreateExpenditureDto, UpdateExpenditureDto } from '../dto/budget.dto';
-import { BudgetResponse, BudgetSummaryResponse } from '../response/budget.response';
-import { Role, City, ProjectStatus, ExpenditureStatus, } from '../../common/enum/enum';
+import { BudgetResponse, BudgetSummaryResponse, EquipmentResponse } from '../response/budget.response';
+import { Role, City, ProjectStatus, ExpenditureStatus, EquipmentStatus, } from '../../common/enum/enum';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
+import { CreateEquipmentDto } from '../dto/equipment.dto';
 
 @Injectable()
 export class BudgetService {
@@ -276,5 +277,58 @@ export class BudgetService {
         isOverBudget: spentTotal > plannedTotal,
       };
     });
+  }
+  //equipment
+  async addEquipment(projectId: string, createEquipmentDto: CreateEquipmentDto, currentUser: any): Promise<EquipmentResponse> {
+    const project = await this.projectModel.findById(projectId).lean();
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.status !== ProjectStatus.IN_PROGRESS) {
+      throw new BadRequestException(`Cannot add equipment to a project with status ${project.status}. Project must be IN_PROGRESS`);
+    }
+    const isInvolved =
+      project.proposedBy === currentUser.city ||
+      (currentUser.city === City.ADAMA && project.adama !== null) ||
+      (currentUser.city === City.AURORA && project.aurora !== null);
+
+    if (!isInvolved) {
+      throw new ForbiddenException('You can only add equipment to projects involving your city');
+    }
+    if (createEquipmentDto.providedDate > new Date()) {
+      throw new BadRequestException('Provided date cannot be in the future');
+    } const newEquipment = new this.equipmentModel({
+      project: projectId,
+      itemName: createEquipmentDto.itemName,
+      description: createEquipmentDto.description,
+      quantity: createEquipmentDto.quantity,
+      estimatedValue: createEquipmentDto.estimatedValue,
+      providedDate: createEquipmentDto.providedDate,
+      providedBy: currentUser.city,
+      recordedBy: currentUser.userId,
+      status: EquipmentStatus.AVAILABLE,
+      damagedNote: null,
+      returnedDate: null,
+    });
+    const savedEquipment = await newEquipment.save();
+    return this.mapToEquipmentResponse(savedEquipment);
+  }
+  private mapToEquipmentResponse(equipment: any): EquipmentResponse {
+    return {
+      id: equipment._id.toString(),
+      project: equipment.project.toString(),
+      itemName: equipment.itemName,
+      description: equipment.description,
+      providedBy: equipment.providedBy,
+      quantity: equipment.quantity,
+      estimatedValue: equipment.estimatedValue,
+      providedDate: equipment.providedDate,
+      status: equipment.status,
+      damagedNote: equipment.damagedNote,
+      returnedDate: equipment.returnedDate,
+      recordedBy: equipment.recordedBy.toString(),
+      createdAt: equipment.createdAt,
+      updatedAt: equipment.updatedAt,
+    };
   }
 }
