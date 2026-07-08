@@ -2,16 +2,21 @@ import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { Budget, BudgetSchema } from "./schema/budget.schema";
 import { Equipment, EquipmentSchema } from "./schema/equipment.schema";
+import { BudgetService } from "./service/budget.servicee";
+import { BudgetController } from "./controller/budget.controller";
+import { Project ,ProjectSchema} from "src/projects/schema/projects.schema";
+import { CloudinaryModule } from "src/common/cloudinary/cloudinary.module";
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Budget.name, schema: BudgetSchema },
-      { name: Equipment.name, schema: EquipmentSchema }
-
-    ])
+      { name: Equipment.name, schema: EquipmentSchema },
+      { name: Project.name,   schema: ProjectSchema},
+    ]),
+    CloudinaryModule
   ],
-  controllers: [],
-  providers: [],
+  controllers: [BudgetController],
+  providers: [BudgetService],
 })
 export class BudgetModule { }
