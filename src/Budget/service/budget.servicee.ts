@@ -331,4 +331,30 @@ export class BudgetService {
       updatedAt: equipment.updatedAt,
     };
   }
+  async getEquipmentByProject(projectId: string, currentUser: any): Promise<EquipmentResponse[]> {
+    const project = await this.projectModel.findById(projectId).lean();
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (currentUser.role === Role.DEPT_OFFICER) {
+      const isAssigned =
+        (currentUser.city === City.ADAMA && project.adama?.department === currentUser.department) ||
+        (currentUser.city === City.AURORA && project.aurora?.department === currentUser.department);
+      if (!isAssigned) {
+        throw new ForbiddenException('You are not assigned to this project');
+      }
+    }
+    if (currentUser.role === Role.CITY_ADMIN) {
+      const isInvolved =
+        project.proposedBy === currentUser.city ||
+        (currentUser.city === City.ADAMA && project.adama !== null) ||
+        (currentUser.city === City.AURORA && project.aurora !== null);
+      if (!isInvolved) {
+        throw new ForbiddenException('You can only view equipment for projects involving your city');
+      }
+    }
+    const equipment = await this.equipmentModel.find({ project: projectId }).lean();
+    if (!equipment || equipment.length === 0) return [];
+    return equipment.map((e: any) => this.mapToEquipmentResponse(e));
+  }
 }

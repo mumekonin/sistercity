@@ -47,4 +47,9 @@ export class BudgetController {
   async addEquipment(@Param('projectId') projectId: string, @Body() createEquipmentDto: CreateEquipmentDto, @Req() req: any) {
     return this.budgetService.addEquipment(projectId, createEquipmentDto, req.user);
   }
+  @Get('/:projectId')
+  @UseGuards(AuthGuard('jwt'))
+  async getEquipmentByProject(@Param('projectId') projectId: string, @Req() req: any) {
+    return this.budgetService.getEquipmentByProject(projectId, req.user);
+  }
 }
