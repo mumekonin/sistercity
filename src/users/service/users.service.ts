@@ -17,53 +17,26 @@ export class UserService {
   async createUser(createUserDto: CreateUserDto, currentUser: any) {
 
     if (currentUser.role === Role.CITY_ADMIN) {
-
-      if (
-        createUserDto.role === Role.CITY_ADMIN ||
-        createUserDto.role === Role.SUPER_ADMIN
-      ) {
-        throw new ForbiddenException(
-          'City Admin can only create Department Officers'
-        );
+      if (createUserDto.role === Role.CITY_ADMIN || createUserDto.role === Role.SUPER_ADMIN) {
+        throw new ForbiddenException('City Admin can only create Department Officers');
       }
-
       if (createUserDto.city !== currentUser.city) {
-        throw new ForbiddenException(
-          'You can only create users for your own city'
-        );
+        throw new ForbiddenException('You can only create users for your own city');
       }
     }
-
     if (currentUser.role === Role.SUPER_ADMIN) {
-
       if (createUserDto.role === Role.SUPER_ADMIN) {
-        throw new ForbiddenException(
-          'Super Admin cannot create another Super Admin'
-        );
+        throw new ForbiddenException('Super Admin cannot create another Super Admin');
       }
     }
-
-    if (
-      createUserDto.role === Role.DEPT_OFFICER &&
-      !createUserDto.department
-    ) {
-      throw new BadRequestException(
-        'Department is required for Department Officer'
-      );
+    if (createUserDto.role === Role.DEPT_OFFICER && !createUserDto.department) {
+      throw new BadRequestException('Department is required for Department Officer');
     }
-
-    const existingUser = await this.userModel.findOne({
-      email: createUserDto.email
-    });
-
+    const existingUser = await this.userModel.findOne({ email: createUserDto.email });
     if (existingUser) {
-      throw new BadRequestException(
-        'A user already exists with this email'
-      );
+      throw new BadRequestException('A user already exists with this email');
     }
-
     const hashedPwd = await bcrypt.hash(createUserDto.password, 10);
-
     const newUser = new this.userModel({
       fullName: createUserDto.fullName,
       email: createUserDto.email,
@@ -74,7 +47,6 @@ export class UserService {
       jobTitle: createUserDto.jobTitle,
       phone: createUserDto.phone,
     });
-
     const savedUser = await newUser.save();
     const userResponse: UserResponse = {
       id: savedUser._id.toString(),
@@ -86,63 +58,42 @@ export class UserService {
       jobTitle: savedUser.jobTitle,
       phone: savedUser.phone,
     };
-
     return userResponse;
   }
 
   //login user
   async loginUser(loginDto: LoginUserDto) {
     const user = await this.userModel.findOne({ email: loginDto.email });
-
     if (!user) {
       throw new NotFoundException('No account found with this email');
     }
     if (!user.isActive) {
-      throw new UnauthorizedException(
-        'Your account has been deactivated. Contact your administrator.'
-      );
+      throw new UnauthorizedException('Your account has been deactivated. Contact your administrator.');
     }
-
     // Check if account is currently locked 
     const now = new Date();
-
     if (user.lockUntil && user.lockUntil > now) {
       const msLeft = user.lockUntil.getTime() - now.getTime();
       const minutesLeft = Math.ceil(msLeft / 60000);
-
-      throw new UnauthorizedException(
-        `Your account is locked. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`
-      );
+      throw new UnauthorizedException(`Your account is locked. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`);
     }
-
     // If lock has expired, reset automatically 
     if (user.lockUntil && user.lockUntil <= now) {
       user.lockUntil = null;
       user.failedLoginAttempts = 0;
-
     }
-
     //Check password 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-
     if (!isPasswordValid) {
       user.failedLoginAttempts += 1;
-
       if (user.failedLoginAttempts >= 5) {
         user.lockUntil = new Date(now.getTime() + 15 * 60 * 1000);
         await user.save();
-
-        throw new UnauthorizedException(
-          'Too many failed attempts. Your account is locked for 15 minutes.'
-        );
+        throw new UnauthorizedException('Too many failed attempts. Your account is locked for 15 minutes.');
       }
-
       await user.save();
-
       const attemptsLeft = 5 - user.failedLoginAttempts;
-      throw new BadRequestException(
-        `Invalid password. ${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining before account is locked.`
-      );
+      throw new BadRequestException(`Invalid password. ${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining before account is locked.`);
     }
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
@@ -156,9 +107,7 @@ export class UserService {
       city: user.city,
       department: user.department,
     };
-
     const token = commonUtils.generateJwtToken(jwtData);
-
     return {
       token,
       user: {
@@ -186,28 +135,20 @@ export class UserService {
   //GET all users
   async getAllUsers(currentUser: any): Promise<UserResponse[]> {
     let users;
-
-    const excludeFilter = {
-      _id: { $ne: currentUser.userId },
-      role: { $ne: Role.SUPER_ADMIN },
-    };
-
+    const excludeFilter = { _id: { $ne: currentUser.userId }, role: { $ne: Role.SUPER_ADMIN } };
     if (currentUser.role === Role.SUPER_ADMIN) {
       users = await this.userModel
         .find({ _id: { $ne: currentUser.userId }, isActive: true })
         .select('-password')
         .lean();
     }
-
     if (currentUser.role === Role.CITY_ADMIN) {
       users = await this.userModel
         .find({ city: currentUser.city, isActive: true, ...excludeFilter })
         .select('-password')
         .lean();
     }
-
     if (!users) return [];
-
     const usersResponse: UserResponse[] = users.map((user) => {
       return {
         id: user._id.toString(),
@@ -225,7 +166,6 @@ export class UserService {
         createdAt: user.createdAt,
       };
     });
-
     return usersResponse;
   }
   // service
@@ -283,45 +223,24 @@ export class UserService {
     return userResponse;
   }
   async changePassword(currentUserId: string, changePasswordDto: ChangePasswordDto) {
-
     const user = await this.userModel.findById(currentUserId);
-
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    const isCurrentPasswordValid = await bcrypt.compare(
-      changePasswordDto.currentPassword,
-      user.password
-    );
-
+    const isCurrentPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
     if (!isCurrentPasswordValid) {
-      throw new BadRequestException(
-        'Current password is incorrect. Please enter your login password.'
-      );
+      throw new BadRequestException('Current password is incorrect. Please enter your login password.');
     }
-
-    const isSamePassword = await bcrypt.compare(
-      changePasswordDto.newPassword,
-      user.password
-    );
-
+    const isSamePassword = await bcrypt.compare(changePasswordDto.newPassword, user.password);
     if (isSamePassword) {
-      throw new BadRequestException(
-        'New password cannot be the same as your current password'
-      );
+      throw new BadRequestException('New password cannot be the same as your current password');
     }
-
     if (changePasswordDto.newPassword !== changePasswordDto.confirmNewPassword) {
-      throw new BadRequestException(
-        'New password and confirm password do not match'
-      );
+      throw new BadRequestException('New password and confirm password do not match');
     }
-
     user.password = await bcrypt.hash(changePasswordDto.newPassword, 10);
     user.refreshToken = null;
     await user.save();
-
     return {
       message: 'Password changed successfully. Please log in again.'
     };

@@ -182,3 +182,20 @@ export enum NewsPostedByCity {
   SHEGER = 'AURORA',
   JOINT = 'JOINT',
 }
+//notification enums
+export enum NotificationType {
+  MESSAGE_RECEIVED  = 'MESSAGE_RECEIVED',
+  DOCUMENT_UPLOADED = 'DOCUMENT_UPLOADED',
+  MILESTONE_DELAYED = 'MILESTONE_DELAYED',
+  TASK_DUE          = 'TASK_DUE',
+  EVENT_REMINDER    = 'EVENT_REMINDER',
+  BUDGET_ALERT      = 'BUDGET_ALERT',
+  PROJECT_APPROVED  = 'PROJECT_APPROVED',
+  PROJECT_REJECTED  = 'PROJECT_REJECTED',
+  ESCALATION        = 'ESCALATION',
+}
+export enum NotificationPriority {
+  NORMAL   = 'NORMAL',
+  URGENT   = 'URGENT',
+  CRITICAL = 'CRITICAL',
+}
