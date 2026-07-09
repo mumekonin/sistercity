@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException,ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { NotificationResponse, NotificationsWithCountResponse } from '../response/notifications.response';
@@ -36,4 +36,19 @@ export class NotificationService {
       createdAt: notification.createdAt,
     };
   }
+ async markAsRead(id: string, currentUser: any): Promise<NotificationResponse> {
+  const notification = await this.notificationModel.findById(id).lean();
+  if (!notification) throw new NotFoundException('Notification not found');
+  // only recipient can mark as read
+  if ((notification as any).recipient.toString() !== currentUser.userId) {
+    throw new ForbiddenException('You can only mark your own notifications as read');
+  }
+  // already read
+  if ((notification as any).isRead) {
+    throw new BadRequestException('Notification is already marked as read');
+  }
+  const updated = await this.notificationModel
+    .findByIdAndUpdate(id,{ isRead: true, readAt: new Date() },{ new: true }).lean();
+  return this.toNotificationResponse(updated);
+}
 }
