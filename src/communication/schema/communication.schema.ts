@@ -85,3 +85,4 @@ export class Message extends Document {
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
+MessageSchema.index({ subject: 'text', body: 'text' });

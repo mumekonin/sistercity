@@ -51,3 +51,4 @@ export class News extends Document {
 }
 
 export const NewsSchema = SchemaFactory.createForClass(News);
+NewsSchema.index({ title: 'text', body: 'text' });

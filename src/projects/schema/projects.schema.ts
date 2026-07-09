@@ -175,3 +175,4 @@ export class Project extends Document {
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);
+ProjectSchema.index({ title: 'text', description: 'text' });

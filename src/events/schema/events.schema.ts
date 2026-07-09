@@ -73,3 +73,4 @@ export class Event extends Document {
 }
 
 export const EventSchema = SchemaFactory.createForClass(Event);
+EventSchema.index({ title: 'text', description: 'text' });

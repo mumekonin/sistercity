@@ -12,6 +12,8 @@ import { CommunicationModule } from './communication/communication.module';
 import {EventsModule } from './events/events.module';
 import { NewsModule } from './news/news.module';
 import { BudgetModule } from './budget/budget.module';
+import { SearchModule } from './search/search.module';
+import { NotificationModule } from './notifications/notification.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -29,7 +31,9 @@ import { BudgetModule } from './budget/budget.module';
     CommunicationModule,
     EventsModule,
     NewsModule,
-    BudgetModule
+    BudgetModule,
+    SearchModule,
+    NotificationModule
   ],
   controllers: [AppController],
   providers: [AppService , JwtStrategy],

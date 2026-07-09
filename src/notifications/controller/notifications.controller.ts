@@ -9,6 +9,11 @@ export class NotificationController {
   async getNotifications(@Req() req: any) {
     return this.notificationService.getNotifications(req.user);
   }
+  @Patch('/read-all')
+  @UseGuards(AuthGuard('jwt'))
+  async markAllAsRead(@Req() req: any) {
+    return this.notificationService.markAllAsRead(req.user);
+  }
   @Patch(':id/read')
   @UseGuards(AuthGuard('jwt'))
   async markAsRead(@Param('id') id: string, @Req() req: any) {
