@@ -5,7 +5,7 @@ import { SearchService } from './search.service';
 import { Project, ProjectSchema } from '../projects/schema/projects.schema';
 import { Message, MessageSchema } from '../communication/schema/communication.schema';
 import { EventSchema,Event } from 'src/events/schema/events.schema';
-import { News,NewsSchema } from 'src/news/schema/news.schema ';
+import { News,NewsSchema } from 'src/news/schema/news.schema';
 
 @Module({
   imports: [

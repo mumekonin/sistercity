@@ -69,3 +69,8 @@ export class ChangePasswordDto {
   @IsNotEmpty()
   confirmNewPassword!: string;
 }
+export class RefreshTokenDto {
+  @IsNotEmpty()
+  @IsString()
+  refreshToken!: string;
+}

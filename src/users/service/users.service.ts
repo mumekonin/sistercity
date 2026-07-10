@@ -7,6 +7,7 @@ import * as bcrypt from "bcrypt";
 import { UserResponse } from "../response/users.response";
 import { commonUtils } from "../../common/utils/utils";
 import { Role } from "src/common/enum/enum";
+import * as jwt from 'jsonwebtoken';
 @Injectable()
 export class UserService {
   constructor(
@@ -108,8 +109,13 @@ export class UserService {
       department: user.department,
     };
     const token = commonUtils.generateJwtToken(jwtData);
+    const refreshToken = commonUtils.generateRefreshToken({ userId: user._id.toString() });
+    // Save refresh token to database
+    user.refreshToken = refreshToken;
+    await user.save();
     return {
       token,
+      refreshToken,
       user: {
         id: user._id.toString(),
         fullName: user.fullName,
@@ -245,4 +251,34 @@ export class UserService {
       message: 'Password changed successfully. Please log in again.'
     };
   }
+  async refreshTokens(refreshToken: string) {
+  try {
+    const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET!;
+    const payload = jwt.verify(refreshToken, secret) as { userId: string };
+    const user = await this.userModel.findById(payload.userId);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Access denied. User is inactive or does not exist.');
+    }
+    if (user.refreshToken !== refreshToken) {
+      throw new UnauthorizedException('Invalid or expired refresh token.');
+    }
+    const newJwtPayload = {
+      userId: user._id.toString(),
+      role: user.role,
+      email: user.email,
+      city: user.city,
+      department: user.department,
+    };
+    const newAccessToken = commonUtils.generateJwtToken(newJwtPayload);
+    const newRefreshToken = commonUtils.generateRefreshToken({ userId: user._id.toString() });
+    user.refreshToken = newRefreshToken;
+    await user.save();
+    return {
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
+  } catch (error) {
+    throw new UnauthorizedException('Invalid or expired session.');
+  }
+}
 }

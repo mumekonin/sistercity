@@ -4,8 +4,8 @@ import { Model } from 'mongoose';
 import { Project } from '../projects/schema/projects.schema';
 import { Message } from '../communication/schema/communication.schema';
 import { Role } from '../common/enum/enum';
-import { News } from 'src/news/schema/news.schema ';
-
+import { News } from 'src/news/schema/news.schema';
+import { Event } from 'src/events/schema/events.schema';
 @Injectable()
 export class SearchService {
   constructor(

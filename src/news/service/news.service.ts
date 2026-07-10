@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { News } from "../schema/news.schema ";
+import { News } from "../schema/news.schema";
 import { Model } from "mongoose";
 import { CloudinaryService } from "src/common/cloudinary/cloudinary.service";
 import { CreateNewsDto, UpdateNewsDto } from "../dto/news.dto";
