@@ -107,5 +107,235 @@ export class ReportsService {
     const saved = await report.save();
     return this.mapToResponse(saved);
   }
+    private buildCityFilter(city: ReportCity): any {
+    if (city === ReportCity.BOTH) {
+      return {};  // no city filter — all cities
+    }
+    return {
+      $or: [
+        { proposedBy: city },
+        { 'adama.department':  { $exists: true, $ne: null },
+          proposedBy: city === ReportCity.ADAMA
+            ? City.ADAMA : City.AURORA },
+        { 'aurora.department': { $exists: true, $ne: null },
+          proposedBy: city === ReportCity.AURORA
+            ? City.AURORA : City.ADAMA },
+      ]
+    };
+  }
+  //  PRIVATE  Compute PARTNERSHIP_PROGRESS
+  private async computePartnershipProgress(city: ReportCity,dateFrom: Date,dateTo: Date): Promise<Record<string, any>> {
+    const cityFilter = this.buildCityFilter(city);
+    const projects = await this.projectModel.find({...cityFilter, createdAt: { $gte: dateFrom, $lte: dateTo },}).lean();
+    // Count by status
+    const byStatus = {
+      proposed:0,
+      approved:0,
+      planned:0,
+      inProgress:0,
+      onHold:0,
+      delayed:0,
+      completed:0,
+      rejected:0,
+    };
+    projects.forEach((p: any) => {
+      switch (p.status) {
+        case ProjectStatus.PROPOSED:byStatus.proposed++;    
+         break;
+        case ProjectStatus.APPROVED:byStatus.approved++;   
+         break;
+        case ProjectStatus.PLANNED:byStatus.planned++;    
+         break;
+        case ProjectStatus.IN_PROGRESS: byStatus.inProgress++; 
+         break;
+        case ProjectStatus.ON_HOLD:byStatus.onHold++;     
+         break;
+        case ProjectStatus.DELAYED:byStatus.delayed++;    
+         break;
+        case ProjectStatus.COMPLETED:byStatus.completed++;  
+         break;
+        case ProjectStatus.REJECTED:byStatus.rejected++;   
+         break;
+      }
+    });
+    return {
+      totalProjects: projects.length, byStatus,
+      projects: projects.map((p: any) => ({
+        id:p._id.toString(),
+        title:p.title,
+        status:p.status,
+        progressPercent: p.progressPercent,
+        proposedBy:p.proposedBy,
+        startDate:p.startDate,
+        endDate:p.endDate,
+      })),
+    };
+}
+  //  PRIVATE — Compute PROJECT_COMPLETION
+  private async computeProjectCompletion(city: ReportCity,dateFrom: Date,dateTo: Date): Promise<Record<string, any>> {
+    const cityFilter = this.buildCityFilter(city);
+    // All completed projects in period
+    const completedProjects = await this.projectModel.find({...cityFilter, status:ProjectStatus.COMPLETED,actualEndDate: { $gte: dateFrom, $lte: dateTo }}).lean();
+    let onTime  = 0;
+    let delayed = 0;
+    completedProjects.forEach((p: any) => {
+      if (p.actualEndDate && p.endDate) {
+        if (p.actualEndDate <= p.endDate) {
+          onTime++;
+        } else {
+          delayed++;
+        }
+      }
+    });
+    // Total projects in period for rate calculation
+    const totalProjects = await this.projectModel.countDocuments({...cityFilter, createdAt: { $gte: dateFrom, $lte: dateTo }});
+    const completionRate = totalProjects === 0 ? 0 : Math.round((completedProjects.length / totalProjects) * 100);
+    return {
+      totalProjects,
+      totalCompleted:  completedProjects.length,
+      onTime,
+      delayed,
+      completionRate,
+      projects: completedProjects.map((p: any) => ({
+        id:p._id.toString(),
+        title:p.title,
+        plannedEnd:p.endDate,
+        actualEnd:p.actualEndDate,
+        isOnTime:p.actualEndDate <= p.endDate,
+      })),
+    };
+  }
+  //  PRIVATE  Compute COMMUNICATION_ACTIVITY
+  private async computeCommunicationActivity(city: ReportCity,dateFrom: Date,dateTo: Date): Promise<Record<string, any>> {
+    let cityFilter: any = {};
+    if (city !== ReportCity.BOTH) {
+      cityFilter = {
+        $or: [
+          { 'from.city': city },
+          { 'to.city':   city },
+        ]
+      };
+    }
+    const messages = await this.messageModel.find({...cityFilter, createdAt: { $gte: dateFrom, $lte: dateTo }}).lean();
+    // Count sent and received
+    const sent= messages.filter((m: any) => m.from.city === city).length;
+    const received = messages.filter((m: any) => m.to.city === city).length;
+    // Count overdue
+    const overdue = messages.filter( (m: any) =>m.responseDeadline < new Date() &&
+        (m.status === MessageStatus.SENT || m.status === MessageStatus.READ)).length;
+    // Average response time in days
+    const repliedMessages = messages.filter((m: any) => m.readAt !== null);
+    let avgResponseDays = 0;
+    if (repliedMessages.length > 0) {
+      const totalDays = repliedMessages.reduce((sum: number, m: any) => {
+        const diffMs   = m.readAt - m.createdAt;
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        return sum + diffDays;
+      }, 0);
+      avgResponseDays = Math.round(
+        (totalDays / repliedMessages.length) * 10
+      ) / 10;
+    }
+    // Count by message type
+    const byType: Record<string, number> = {};
+    messages.forEach((m: any) => {
+      byType[m.messageType] = (byType[m.messageType] || 0) + 1;
+    });
+    return {
+      totalMessages: messages.length,
+      sent,
+      received,
+      overdue,
+      avgResponseDays,
+      byType,
+    };
+  }
+  //  PRIVATE Compute BUDGET_UTILIZATION
+  private async computeBudgetUtilization(city: ReportCity,dateFrom: Date,dateTo: Date): Promise<Record<string, any>> {
+    const cityFilter = this.buildCityFilter(city);
+    // Get projects in period
+    const projects = await this.projectModel.find({...cityFilter,createdAt: { $gte: dateFrom, $lte: dateTo },budgetTotal: { $gt: 0 },}).lean();
+    const projectIds = projects.map((p: any) => p._id);
+    // Get budgets for these projects
+    const budgets = await this.budgetModel.find({ project: { $in: projectIds }}).lean();
+    // Calculate totals
+    let totalPlanned = 0;
+    let totalSpent= 0;
 
+    const byProject = projects.map((project: any) => {
+      const budget = budgets.find((b: any) => b.project.toString() === project._id.toString());
+
+      const planned = project.budgetTotal;
+      const spent   = budget ? budget.spentTotal : 0;
+      const remaining = planned - spent;
+      const percentageUsed = planned === 0 ? 0: Math.round((spent / planned) * 100);
+      totalPlanned += planned;
+      totalSpent   += spent;
+      return {
+        projectId:project._id.toString(),
+        projectTitle:project.title,
+        planned,
+        spent,
+        remaining,
+        percentageUsed,
+        isOverBudget:spent > planned,
+      };
+    });
+    return {
+      totalPlanned,
+      totalSpent,
+      remaining:totalPlanned - totalSpent,
+      percentageUsed: totalPlanned === 0? 0 : Math.round((totalSpent / totalPlanned) * 100),
+      isOverBudget:   totalSpent > totalPlanned,
+      byProject,
+    };
+  }
+  //  PRIVATE Compute DOCUMENT_ACTIVITY
+  private async computeDocumentActivity(city: ReportCity,dateFrom: Date,dateTo: Date,): Promise<Record<string, any>> {
+    // Build city filter for documents
+    let cityFilter: any = {};
+    if (city !== ReportCity.BOTH) {
+      cityFilter = { city };
+    }
+    const documents = await this.documentModel.find({...cityFilter,createdAt: { $gte: dateFrom, $lte: dateTo }}).lean();
+    // Count by approval status
+    const byStatus = { draft:0, approved: 0, rejected: 0};
+    documents.forEach((d: any) => {
+      switch (d.approvalStatus) {
+        case DocumentApprovalStatus.DRAFT:
+          byStatus.draft++;
+          break;
+        case DocumentApprovalStatus.APPROVED:
+          byStatus.approved++;
+          break;
+        case DocumentApprovalStatus.REJECTED:
+          byStatus.rejected++;
+          break;
+      }
+    });
+    // Count by category
+    const byCategory: Record<string, number> = {};
+    documents.forEach((d: any) => {
+      byCategory[d.category] =
+        (byCategory[d.category] || 0) + 1;
+    });
+    return {
+      totalDocuments: documents.length,
+      byStatus,
+      byCategory,
+    };
+  }
+ private mapToResponse(report: any): ReportResponse {
+    return {
+      id:report._id.toString(),
+      reportType:  report.reportType,
+      generatedBy: report.generatedBy.toString(),
+      city:report.city,
+      dateFrom:report.dateFrom,
+      dateTo:report.dateTo,
+      data:report.data,
+      generatedAt: report.generatedAt,
+      createdAt:   report.createdAt,
+    };
+  }
 }
