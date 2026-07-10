@@ -14,6 +14,7 @@ import { NewsModule } from './news/news.module';
 import { BudgetModule } from './budget/budget.module';
 import { SearchModule } from './search/search.module';
 import { NotificationModule } from './notifications/notification.module';
+import { ReportsModule } from './reports/reports.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -33,7 +34,8 @@ import { NotificationModule } from './notifications/notification.module';
     NewsModule,
     BudgetModule,
     SearchModule,
-    NotificationModule
+    NotificationModule,
+    ReportsModule
   ],
   controllers: [AppController],
   providers: [AppService , JwtStrategy],
