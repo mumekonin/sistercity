@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Report } from '../schema/reports.schema';
@@ -346,5 +346,68 @@ export class ReportsService {
       throw new ForbiddenException('You can only view your own reports');
     }
     return this.mapToResponse(report);
+  }
+  async downloadReport(reportId: string, fileType: string, currentUser: any, res: any): Promise<void> {
+    const report = await this.reportModel.findById(reportId).lean();
+    if (!report) throw new NotFoundException('Report not found');
+    if (currentUser.role === Role.CITY_ADMIN && (report as any).generatedBy.toString() !== currentUser.userId) {
+      throw new ForbiddenException('You can only download your own reports');
+    }
+    if (fileType === 'excel') {
+      await this.downloadAsExcel(report, res);
+    } else {
+      await this.downloadAsPdf(report, res);
+    }
+  }
+  private async downloadAsPdf(report: any, res: any): Promise<void> {
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=report-${report._id}.pdf`);
+    doc.pipe(res);
+    // header
+    doc.fontSize(20).text('Sister City Portal', { align: 'center' });
+    doc.fontSize(14).text(`Report Type: ${report.reportType}`, { align: 'center' });
+    doc.moveDown();
+    // info
+    doc.fontSize(12).text(`City: ${report.city}`);
+    doc.text(`Period: ${new Date(report.dateFrom).toDateString()} - ${new Date(report.dateTo).toDateString()}`);
+    doc.text(`Generated At: ${new Date(report.generatedAt).toDateString()}`);
+    doc.moveDown();
+    // data
+    doc.fontSize(14).text('Report Data:');
+    doc.moveDown();
+    doc.fontSize(10).text(JSON.stringify(report.data, null, 2));
+    doc.end();
+  }
+  private async downloadAsExcel(report: any, res: any): Promise<void> {
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Report');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=report-${report._id}.xlsx`);
+    // header row
+    sheet.addRow(['Sister City Portal Report']);
+    sheet.addRow(['Report Type', report.reportType]);
+    sheet.addRow(['City', report.city]);
+    sheet.addRow(['Period', `${new Date(report.dateFrom).toDateString()} - ${new Date(report.dateTo).toDateString()}`]);
+    sheet.addRow(['Generated At', new Date(report.generatedAt).toDateString()]);
+    sheet.addRow([]);
+    // data rows
+    sheet.addRow(['Report Data']);
+    const flattenData = (obj: any, prefix = '') => {
+      Object.entries(obj).forEach(([key, value]) => {
+        if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+          flattenData(value, `${prefix}${key}.`);
+        } else if (Array.isArray(value)) {
+          sheet.addRow([`${prefix}${key}`, JSON.stringify(value)]);
+        } else {
+          sheet.addRow([`${prefix}${key}`, value]);
+        }
+      });
+    };
+    flattenData(report.data);
+    await workbook.xlsx.write(res);
+    res.end();
   }
 }
