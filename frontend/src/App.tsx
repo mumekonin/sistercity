@@ -1,5 +1,12 @@
 import Router from './router';
+import { useThemeStore } from './store/theme.store';
 
 export default function App() {
-  return <Router />;
+  const { isDark } = useThemeStore();
+
+  return (
+    <div className={isDark ? 'dark' : ''}>
+      <Router />
+    </div>
+  );
 }

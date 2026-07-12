@@ -1,5 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
+import { useUnreadCount } from '../../hooks/useNotifications';
+
+interface NavItem {
+  name: string;
+  path: string;
+  icon: React.ReactNode;
+  badge?: number;
+}
 
 const navigation = [
   {
@@ -146,83 +154,133 @@ const navigation = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user } = useAuthStore();
+  const unreadCount = useUnreadCount();
+
+  const navigationWithBadge = navigation.map((section) => ({
+    ...section,
+    items: section.items.map((item) => ({
+      ...item,
+      badge: item.path === '/notifications' ? unreadCount : undefined,
+    })),
+  }));
 
   return (
-    <div className="w-64 min-h-screen bg-white border-r border-blue-100 flex flex-col">
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      {/* Logo */}
-      <div className="p-6 border-b border-blue-100">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#1a4a8a] rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-[#1a4a8a] font-bold text-sm">Sister City Portal</p>
-            <p className="text-blue-400 text-xs">Adama — Aurora</p>
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:static inset-y-0 left-0 z-30
+        w-64 min-h-screen
+        bg-white dark:bg-[#0f172a]
+        border-r border-blue-100 dark:border-slate-700
+        flex flex-col transition-all duration-300
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+
+        {/* Logo */}
+        <div className="p-6 border-b border-blue-100 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-[#1a4a8a] rounded-lg flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[#1a4a8a] dark:text-white font-bold text-sm">Sister City Portal</p>
+                <p className="text-blue-400 dark:text-slate-400 text-xs">Adama — Aurora</p>
+              </div>
+            </div>
+
+            {/* Close button — mobile only */}
+            <button
+              onClick={onClose}
+              className="lg:hidden text-blue-400 hover:text-[#1a4a8a] transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
-        {navigation.map((section) => (
-          <div key={section.group}>
-            <p className="text-xs font-semibold text-blue-300 tracking-wider mb-2 px-3">
-              {section.group}
-            </p>
-            <div className="space-y-1">
-              {section.items.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                      isActive
-                        ? 'bg-[#1a4a8a] text-white'
-                        : 'text-[#1a4a8a] hover:bg-blue-50'
-                    }`
-                  }
-                >
-                  {item.icon}
-                  {item.name}
-                </NavLink>
-              ))}
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+          {navigationWithBadge.map((section) => (
+            <div key={section.group}>
+              <p className="text-xs font-semibold text-blue-300 dark:text-slate-500 tracking-wider mb-2 px-3">
+                {section.group}
+              </p>
+              <div className="space-y-1">
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                        isActive
+                          ? 'bg-[#1a4a8a] text-white'
+                          : 'text-[#1a4a8a] dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-800'
+                      }`
+                    }
+                  >
+                    {item.icon}
+                    <span className="flex-1">{item.name}</span>
+                    {item.badge && item.badge > 0 && (
+                      <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                        {item.badge > 9 ? '9+' : item.badge}
+                      </span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* User info */}
+        <div className="p-4 border-t border-blue-100 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#1a4a8a] rounded-full flex items-center justify-center shrink-0">
+              <span className="text-white text-sm font-bold">
+                {user?.fullName?.charAt(0) ?? 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[#1a4a8a] dark:text-white text-sm font-semibold truncate">
+                {user?.fullName ?? 'User'}
+              </p>
+              <p className="text-blue-400 dark:text-slate-400 text-xs truncate">
+                {user?.role ?? 'Role'}
+              </p>
             </div>
           </div>
-        ))}
-      </nav>
+        </div>
 
-      {/* User info */}
-      <div className="p-4 border-t border-blue-100">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#1a4a8a] rounded-full flex items-center justify-center shrink-0">
-            <span className="text-white text-sm font-bold">
-              {user?.fullName?.charAt(0) ?? 'U'}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[#1a4a8a] text-sm font-semibold truncate">
-              {user?.fullName ?? 'User'}
-            </p>
-            <p className="text-blue-400 text-xs truncate">
-              {user?.role ?? 'Role'}
-            </p>
-          </div>
+        {/* Footer */}
+        <div className="px-4 pb-4">
+          <p className="text-blue-200 dark:text-slate-600 text-xs text-center">
+            Portal v1.0 · © 2025 Adama–Aurora
+          </p>
         </div>
       </div>
-
-      {/* Footer */}
-      <div className="px-4 pb-4">
-        <p className="text-blue-200 text-xs text-center">
-          Portal v1.0 · © 2025 Adama–Aurora
-        </p>
-      </div>
-
-    </div>
+    </>
   );
 }
