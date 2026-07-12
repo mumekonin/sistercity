@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { citiesApi } from '../../api/cities.api';
 import type { CityProfile } from '../../types/city.types';
 import { useAuthStore } from '../../store/auth.store';
+import EditCityProfileModal from './EditCityProfileModal';
 
 export default function CityProfilesPage() {
   const { user } = useAuthStore();
   const [profiles, setProfiles] = useState<CityProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingProfile, setEditingProfile] = useState<CityProfile | null>(null);
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -22,6 +24,12 @@ export default function CityProfilesPage() {
     };
     fetchProfiles();
   }, []);
+
+  const handleUpdated = (updated: CityProfile) => {
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === updated.id ? updated : p))
+    );
+  };
 
   if (loading) {
     return (
@@ -41,8 +49,6 @@ export default function CityProfilesPage() {
 
   return (
     <div className="space-y-6">
-
-      {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold text-[#1a4a8a] dark:text-white">
           City Profiles
@@ -52,7 +58,6 @@ export default function CityProfilesPage() {
         </p>
       </div>
 
-      {/* City cards */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {profiles.map((profile) => (
           <CityCard
@@ -62,14 +67,24 @@ export default function CityProfilesPage() {
               user?.role === 'SUPER_ADMIN' ||
               (user?.role === 'CITY_ADMIN' && user?.city === profile.city)
             }
+            onEdit={() => setEditingProfile(profile)}
           />
         ))}
       </div>
+
+      {/* Edit Modal */}
+      {editingProfile && (
+        <EditCityProfileModal
+          profile={editingProfile}
+          onClose={() => setEditingProfile(null)}
+          onUpdated={handleUpdated}
+        />
+      )}
     </div>
   );
 }
 
-function CityCard({ profile, canEdit }: { profile: CityProfile; canEdit: boolean }) {
+function CityCard({ profile, canEdit, onEdit }: { profile: CityProfile; canEdit: boolean; onEdit: () => void; }) {
   return (
     <div className="bg-white dark:bg-[#0f172a] rounded-2xl border border-blue-100 dark:border-slate-700 overflow-hidden">
 
@@ -100,7 +115,11 @@ function CityCard({ profile, canEdit }: { profile: CityProfile; canEdit: boolean
 
           {/* Edit button */}
           {canEdit && (
-            <button className="text-white/70 hover:text-white transition">
+            <button
+              onClick={onEdit} // ← connect
+              className="text-white/70 hover:text-white transition"
+              title="Edit city profile"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
