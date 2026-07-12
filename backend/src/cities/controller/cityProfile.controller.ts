@@ -32,7 +32,6 @@ export class CityProfileController {
   }
 
   @Get("/:city/departments")
-  @UseGuards(AuthGuard('jwt'))
   async getCityDepartments(
     @Param('city') city: string
   ) {

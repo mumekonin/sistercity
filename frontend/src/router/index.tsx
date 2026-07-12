@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
 import Layout from '../components/layout/Layout';
 import LoginPage from '../pages/auth/LoginPage';
+import CityProfilesPage from '../pages/cities/CityProfilesPage';
+
 // Protected route
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -26,7 +28,7 @@ export default function Router() {
         >
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard" element={<div className="text-[#1a4a8a] text-2xl font-bold">Dashboard coming soon...</div>} />
-          <Route path="cities" element={<div className="text-[#1a4a8a] text-2xl font-bold">City Profiles coming soon...</div>} />
+          <Route path="cities" element={<CityProfilesPage />} />
           <Route path="projects" element={<div className="text-[#1a4a8a] text-2xl font-bold">Projects coming soon...</div>} />
           <Route path="documents" element={<div className="text-[#1a4a8a] text-2xl font-bold">Documents coming soon...</div>} />
           <Route path="messages" element={<div className="text-[#1a4a8a] text-2xl font-bold">Communication coming soon...</div>} />
