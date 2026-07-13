@@ -11,7 +11,7 @@ interface Props {
 export default function EditCityProfileModal({ profile, onClose, onUpdated }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'basic' | 'population' | 'contact' | 'partnership'>('basic');
+const [activeTab, setActiveTab] = useState<'basic' | 'population' | 'contact' | 'partnership' | 'officials' | 'departments'>('basic');
 
   // basicInfo state
   const [basicInfo, setBasicInfo] = useState({
@@ -33,6 +33,13 @@ export default function EditCityProfileModal({ profile, onClose, onUpdated }: Pr
       ? new Date(profile.population.lastUpdated).toISOString().split('T')[0]
       : '',
   });
+  const [keyOfficials, setKeyOfficials] = useState(
+    profile.keyOfficials ?? []
+  );
+
+  const [departments, setDepartments] = useState(
+    profile.departments ?? []
+  );
 
   // contactInfo state
   const [contactInfo, setContactInfo] = useState({
@@ -65,6 +72,8 @@ export default function EditCityProfileModal({ profile, onClose, onUpdated }: Pr
           ...partnershipHistory,
           agreementDate: new Date(partnershipHistory.agreementDate),
         },
+        keyOfficials,
+        departments,
       });
       onUpdated(updated);
       onClose();
@@ -80,6 +89,8 @@ export default function EditCityProfileModal({ profile, onClose, onUpdated }: Pr
     { id: 'population', label: 'Population' },
     { id: 'contact', label: 'Contact' },
     { id: 'partnership', label: 'Partnership' },
+    { id: 'officials', label: 'Key Officials' },
+    { id: 'departments', label: 'Departments' },
   ] as const;
 
   return (
@@ -121,11 +132,10 @@ export default function EditCityProfileModal({ profile, onClose, onUpdated }: Pr
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${
-                activeTab === tab.id
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${activeTab === tab.id
                   ? 'border-[#1a4a8a] text-[#1a4a8a] dark:text-white dark:border-blue-400'
                   : 'border-transparent text-blue-400 hover:text-[#1a4a8a] dark:hover:text-white'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -307,6 +317,182 @@ export default function EditCityProfileModal({ profile, onClose, onUpdated }: Pr
                     className="w-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition resize-none"
                   />
                 </div>
+              </div>
+            )}
+            {activeTab === 'departments' && (
+              <div className="space-y-4">
+
+                {departments.map((dept, index) => (
+                  <div key={index}
+                    className="bg-blue-50 dark:bg-slate-800 rounded-xl p-4 space-y-3">
+
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-[#1a4a8a] dark:text-white">
+                        Department #{index + 1}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setDepartments(departments.filter((_, i) => i !== index))}
+                        className="text-red-400 hover:text-red-600 transition"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs text-blue-400 dark:text-slate-400 mb-1">Department Name</label>
+                        <input
+                          type="text"
+                          value={dept.name ?? ''}
+                          onChange={(e) => {
+                            const updated = [...departments];
+                            updated[index] = { ...updated[index], name: e.target.value };
+                            setDepartments(updated);
+                          }}
+                          className="w-full bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-blue-400 dark:text-slate-400 mb-1">Head Name</label>
+                        <input
+                          type="text"
+                          value={dept.headName ?? ''}
+                          onChange={(e) => {
+                            const updated = [...departments];
+                            updated[index] = { ...updated[index], headName: e.target.value };
+                            setDepartments(updated);
+                          }}
+                          className="w-full bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-blue-400 dark:text-slate-400 mb-1">Head Email</label>
+                        <input
+                          type="email"
+                          value={dept.headEmail ?? ''}
+                          onChange={(e) => {
+                            const updated = [...departments];
+                            updated[index] = { ...updated[index], headEmail: e.target.value };
+                            setDepartments(updated);
+                          }}
+                          className="w-full bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add department button */}
+                <button
+                  type="button"
+                  onClick={() => setDepartments([...departments, { name: '', headName: '', headEmail: '' }])}
+                  className="w-full py-2.5 border-2 border-dashed border-blue-200 dark:border-slate-600 rounded-xl text-sm text-blue-400 hover:text-[#1a4a8a] hover:border-blue-400 dark:hover:text-white transition flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Department
+                </button>
+              </div>
+            )}
+            {activeTab === 'officials' && (
+              <div className="space-y-4">
+
+                {/* Officials list */}
+                {keyOfficials.map((official, index) => (
+                  <div key={index}
+                    className="bg-blue-50 dark:bg-slate-800 rounded-xl p-4 space-y-3">
+
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-[#1a4a8a] dark:text-white">
+                        Official #{index + 1}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setKeyOfficials(keyOfficials.filter((_, i) => i !== index))}
+                        className="text-red-400 hover:text-red-600 transition"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-blue-400 dark:text-slate-400 mb-1">Name</label>
+                        <input
+                          type="text"
+                          value={official.name ?? ''}
+                          onChange={(e) => {
+                            const updated = [...keyOfficials];
+                            updated[index] = { ...updated[index], name: e.target.value };
+                            setKeyOfficials(updated);
+                          }}
+                          className="w-full bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-blue-400 dark:text-slate-400 mb-1">Title</label>
+                        <input
+                          type="text"
+                          value={official.title ?? ''}
+                          onChange={(e) => {
+                            const updated = [...keyOfficials];
+                            updated[index] = { ...updated[index], title: e.target.value };
+                            setKeyOfficials(updated);
+                          }}
+                          className="w-full bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-blue-400 dark:text-slate-400 mb-1">Email</label>
+                        <input
+                          type="email"
+                          value={official.email ?? ''}
+                          onChange={(e) => {
+                            const updated = [...keyOfficials];
+                            updated[index] = { ...updated[index], email: e.target.value };
+                            setKeyOfficials(updated);
+                          }}
+                          className="w-full bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-blue-400 dark:text-slate-400 mb-1">Phone</label>
+                        <input
+                          type="text"
+                          value={official.phone ?? ''}
+                          onChange={(e) => {
+                            const updated = [...keyOfficials];
+                            updated[index] = { ...updated[index], phone: e.target.value };
+                            setKeyOfficials(updated);
+                          }}
+                          className="w-full bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add official button */}
+                <button
+                  type="button"
+                  onClick={() => setKeyOfficials([...keyOfficials, { name: '', title: '', email: '', phone: '' }])}
+                  className="w-full py-2.5 border-2 border-dashed border-blue-200 dark:border-slate-600 rounded-xl text-sm text-blue-400 hover:text-[#1a4a8a] hover:border-blue-400 dark:hover:text-white transition flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Official
+                </button>
               </div>
             )}
 

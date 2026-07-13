@@ -3,6 +3,8 @@ import { useAuthStore } from '../store/auth.store';
 import Layout from '../components/layout/Layout';
 import LoginPage from '../pages/auth/LoginPage';
 import CityProfilesPage from '../pages/cities/CityProfilesPage';
+import ProjectsPage from '../pages/projects/projects.page';
+import ProjectDetailPage from '../pages/projects/ProjectDetailPage';
 
 // Protected route
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -29,7 +31,8 @@ export default function Router() {
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard" element={<div className="text-[#1a4a8a] text-2xl font-bold">Dashboard coming soon...</div>} />
           <Route path="cities" element={<CityProfilesPage />} />
-          <Route path="projects" element={<div className="text-[#1a4a8a] text-2xl font-bold">Projects coming soon...</div>} />
+          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="projects/:id" element={<ProjectDetailPage />} />
           <Route path="documents" element={<div className="text-[#1a4a8a] text-2xl font-bold">Documents coming soon...</div>} />
           <Route path="messages" element={<div className="text-[#1a4a8a] text-2xl font-bold">Communication coming soon...</div>} />
           <Route path="events" element={<div className="text-[#1a4a8a] text-2xl font-bold">Events coming soon...</div>} />
