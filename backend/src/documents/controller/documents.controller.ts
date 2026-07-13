@@ -48,7 +48,7 @@ export class DocumentsController {
   }
   @Patch('/:id')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
+  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER, Role.SUPER_ADMIN)
   async updateDocument(@Param('id') id: string, @Body() updateDocumentDto: UpdateDocumentDto, @Req() req: any) {
     return this.documentsService.updateDocument(id, updateDocumentDto, req.user);
   }
