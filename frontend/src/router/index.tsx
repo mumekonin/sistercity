@@ -5,6 +5,7 @@ import LoginPage from '../pages/auth/LoginPage';
 import CityProfilesPage from '../pages/cities/CityProfilesPage';
 import ProjectsPage from '../pages/projects/projects.page';
 import ProjectDetailPage from '../pages/projects/ProjectDetailPage';
+import DocumentsPage from '../pages/documents/docuDocumentsPage';
 
 // Protected route
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -33,7 +34,7 @@ export default function Router() {
           <Route path="cities" element={<CityProfilesPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/:id" element={<ProjectDetailPage />} />
-          <Route path="documents" element={<div className="text-[#1a4a8a] text-2xl font-bold">Documents coming soon...</div>} />
+          <Route path="documents" element={<DocumentsPage />} />
           <Route path="messages" element={<div className="text-[#1a4a8a] text-2xl font-bold">Communication coming soon...</div>} />
           <Route path="events" element={<div className="text-[#1a4a8a] text-2xl font-bold">Events coming soon...</div>} />
           <Route path="budget" element={<div className="text-[#1a4a8a] text-2xl font-bold">Budget coming soon...</div>} />
