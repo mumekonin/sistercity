@@ -66,6 +66,7 @@ export default function ProjectDetailPage() {
   // action modal states
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
   const [showStatusUpdate, setShowStatus] = useState(false);
@@ -127,17 +128,22 @@ export default function ProjectDetailPage() {
   );
 
   const canApproveReject = isReceivingCity && project.status === 'PROPOSED';
+  const canDelete = isProposingCity && project.status === 'PROPOSED';
   const canAssign = isAdmin && project.status === 'APPROVED' && (
     (user?.city === 'ADAMA' && !project.adama) ||
     (user?.city === 'AURORA' && !project.aurora)
   );
+  // canPlan: backend blocks if city already submitted budget (tracked via adamaPlanned/auroraPlanned).
+  // Since those flags aren't in the response, we proxy via budgetAdama/budgetAurora > 0.
+  const adamaAlreadyPlanned = project.budgetAdama > 0;
+  const auroraAlreadyPlanned = project.budgetAurora > 0;
   const canPlan = isAdmin && project.status === 'PLANNED' && (
-    (user?.city === 'ADAMA' && !project.adama) ||
-    (user?.city === 'AURORA' && !project.aurora) ||
-    true // simplified  backend will validate
+    (user?.city === 'ADAMA' && !adamaAlreadyPlanned) ||
+    (user?.city === 'AURORA' && !auroraAlreadyPlanned)
   );
   const canUpdateStatus = isAdmin && ['PLANNED', 'IN_PROGRESS', 'ON_HOLD', 'DELAYED'].includes(project.status);
-  const canAddMilestone = isInvolved && ['PLANNED', 'IN_PROGRESS', 'ON_HOLD', 'DELAYED'].includes(project.status);
+  // addMilestone is @Roles(CITY_ADMIN) on backend — officers not allowed
+  const canAddMilestone = isAdmin && isInvolved && ['PLANNED', 'IN_PROGRESS', 'ON_HOLD', 'DELAYED'].includes(project.status);
   const canAddTask = isInvolved && ['IN_PROGRESS', 'ON_HOLD', 'DELAYED'].includes(project.status);
   const canAddIssue = (isInvolved || isOfficer) && ['IN_PROGRESS', 'ON_HOLD', 'DELAYED'].includes(project.status);
   const canComplete = isAdmin && project.status === 'IN_PROGRESS' && !project.completedBy.includes(user?.city ?? '');
@@ -200,6 +206,14 @@ export default function ProjectDetailPage() {
                     Reject
                   </button>
                 </>
+              )}
+              {canDelete && (
+                <button
+                  onClick={() => setShowDelete(true)}
+                  className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition"
+                >
+                  Delete Proposal
+                </button>
               )}
               {canAssign && (
                 <button
@@ -420,7 +434,9 @@ export default function ProjectDetailPage() {
                             <p className="text-xs text-orange-500 mt-1">⚠ {m.delayReason}</p>
                           )}
                         </div>
-                        {(isAdmin || isOfficer) && project.status !== 'COMPLETED' && (
+                        {/* Backend: only CITY_ADMIN can update a COMPLETED milestone; officers blocked on completed */}
+                        {project.status !== 'COMPLETED' &&
+                          (isAdmin || (isOfficer && m.status !== 'COMPLETED')) && (
                           <button
                             onClick={() => setEditMilestone(m)}
                             className="text-blue-400 hover:text-[#1a4a8a] dark:hover:text-blue-300 transition shrink-0"
@@ -597,6 +613,20 @@ export default function ProjectDetailPage() {
           projectId={project.id}
           onClose={() => setShowReject(false)}
           onUpdated={(p) => { refresh(p); setShowReject(false); }}
+        />
+      )}
+
+      {showDelete && (
+        <ConfirmModal
+          title="Delete Proposal"
+          message={`Are you sure you want to delete the project proposal "${project.title}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          confirmClass="bg-red-500 hover:bg-red-600"
+          onClose={() => setShowDelete(false)}
+          onConfirm={async () => {
+            await projectsApi.delete(project.id);
+            navigate('/projects');
+          }}
         />
       )}
 
@@ -1051,18 +1081,21 @@ function AddTaskModal({ projectId, onClose, onUpdated }: { projectId: string; on
 
 // ── Update Task Modal ──────────────────────────────────────────────────
 function UpdateTaskModal({ projectId, task, userRole, onClose, onUpdated }: { projectId: string; task: Task; userRole: string; onClose: () => void; onUpdated: (p: Project) => void }) {
-  const [status, setStatus] = useState<TaskStatus>(task.status);
-  const [priority, setPriority] = useState<TaskPriority>(task.priority);
-  const [dueDate, setDueDate] = useState(task.dueDate?.split('T')[0] ?? '');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const isOfficer = userRole === 'DEPT_OFFICER';
-
   const allowedTransitions: Record<string, TaskStatus[]> = {
     TODO: ['IN_PROGRESS'],
     IN_PROGRESS: ['DONE', 'TODO'],
     DONE: ['IN_PROGRESS'],
   };
+  // BUG FIX: initialize to first valid transition, NOT task.status.
+  // The <select> only shows transition targets; submitting the current status
+  // would cause backend to throw "Cannot move task from X to X".
+  const firstTransition = (allowedTransitions[task.status] ?? [])[0] ?? task.status;
+  const [status, setStatus] = useState<TaskStatus>(firstTransition);
+  const [priority, setPriority] = useState<TaskPriority>(task.priority);
+  const [dueDate, setDueDate] = useState(task.dueDate?.split('T')[0] ?? '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const isOfficer = userRole === 'DEPT_OFFICER';
 
   const handle = async () => {
     try {

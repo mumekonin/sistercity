@@ -22,6 +22,11 @@ export const projectsApi = {
     return response.data;
   },
 
+  delete: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete(`/projects/${id}`);
+    return response.data;
+  },
+
   addMilestone: async (id: string, data: CreateMilestoneDto): Promise<Project> => {
     const response = await api.post(`/projects/${id}/milestones`, data);
     return response.data;
