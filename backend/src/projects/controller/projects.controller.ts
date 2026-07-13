@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards, Get, Param, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Get, Param, Patch, Delete } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DbRolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorator/role.decorator';
@@ -28,6 +28,13 @@ export class ProjectsController {
   @Roles(Role.CITY_ADMIN)
   async updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto, @Req() req: any,) {
     return this.projectsService.updateProject(id, updateProjectDto, req.user);
+  }
+
+  @Delete('/:id')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN)
+  async deleteProject(@Param('id') id: string, @Req() req: any) {
+    return this.projectsService.deleteProject(id, req.user);
   }
   @Get('/')
   @UseGuards(AuthGuard('jwt'))

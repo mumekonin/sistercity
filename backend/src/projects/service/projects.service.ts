@@ -131,7 +131,9 @@ export class ProjectsService {
       const isInvolved =
         project.proposedBy === currentUser.city ||
         (currentUser.city === City.ADAMA && project.adama !== null) ||
-        (currentUser.city === City.AURORA && project.aurora !== null);
+        (currentUser.city === City.AURORA && project.aurora !== null) ||
+        // Receiving city must be able to view PROPOSED projects to approve/reject them
+        (project.status === ProjectStatus.PROPOSED && project.proposedBy !== currentUser.city);
 
       if (!isInvolved) {
         throw new ForbiddenException(
@@ -431,6 +433,25 @@ export class ProjectsService {
     return this.mapToResponse(updatedProject);
   }
 
+  async deleteProject(id: string, currentUser: any): Promise<{ success: boolean; message: string }> {
+    const project = await this.projectModel.findById(id);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.proposedBy !== currentUser.city) {
+      throw new ForbiddenException('You can only delete proposals made by your city');
+    }
+
+    if (project.status !== ProjectStatus.PROPOSED) {
+      throw new BadRequestException('Cannot delete a project that is no longer in PROPOSED status');
+    }
+
+    await this.projectModel.findByIdAndDelete(id);
+    return { success: true, message: 'Project proposal deleted successfully' };
+  }
+
   async getAllProjects(currentUser: any): Promise<ProjectListResponse[]> {
 
     let projects: any[] = [];
@@ -439,13 +460,15 @@ export class ProjectsService {
       projects = await this.projectModel.find().lean();
     }
 
-    //city admin only see thir own city projects
+    //city admin only see their own city projects + PROPOSED projects from the other city (to approve/reject)
     if (currentUser.role === Role.CITY_ADMIN) {
       if (currentUser.city === City.ADAMA) {
         projects = await this.projectModel.find({
           $or: [
             { proposedBy: City.ADAMA },
             { 'adama.department': { $exists: true, $ne: null } },
+            // Adama needs to see proposals FROM Aurora waiting for Adama's approval
+            { status: ProjectStatus.PROPOSED, proposedBy: City.AURORA },
           ]
         }).lean();
       }
@@ -455,6 +478,8 @@ export class ProjectsService {
           $or: [
             { proposedBy: City.AURORA },
             { 'aurora.department': { $exists: true, $ne: null } },
+            // Aurora needs to see proposals FROM Adama waiting for Aurora's approval
+            { status: ProjectStatus.PROPOSED, proposedBy: City.ADAMA },
           ]
         }).lean();
       }
