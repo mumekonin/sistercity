@@ -84,7 +84,7 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
       {/* Header */}
       <div className="p-4 border-b border-blue-100 dark:border-slate-700 bg-white dark:bg-[#0f172a]">
         <div className="flex items-center gap-3 mb-3">
-          {/* Back button — mobile */}
+          {/* Back button  mobile */}
           <button
             onClick={onBack}
             className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition"

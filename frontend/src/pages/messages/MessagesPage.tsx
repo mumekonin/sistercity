@@ -108,13 +108,10 @@ export default function MessagesPage() {
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-0 bg-white dark:bg-[#0f172a] rounded-2xl border border-blue-100 dark:border-slate-700 overflow-hidden shadow-sm">
-
-      {/* ═══════════════════════════════════════════════════════ */}
       {/* LEFT PANEL — message list                              */}
-      {/* ═══════════════════════════════════════════════════════ */}
       <div className={`flex flex-col border-r border-blue-100 dark:border-slate-700 transition-all duration-200 ${selectedId ? 'hidden md:flex md:w-80 lg:w-96' : 'w-full md:w-80 lg:w-96'}`}>
 
-        {/* ── Header ─────────────────────────────────────────── */}
+        {/*  Header  */}
         <div className="px-5 pt-5 pb-3 border-b border-blue-50 dark:border-slate-800">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -157,7 +154,7 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* ── Tabs ───────────────────────────────────────────── */}
+        {/*  Tabs  */}
         <div className="flex border-b border-blue-50 dark:border-slate-800 px-1 pt-1">
           {tabs.map((tab) => {
             const badge = getTabBadge(tab.id);
@@ -189,7 +186,7 @@ export default function MessagesPage() {
           })}
         </div>
 
-        {/* ── Message list ────────────────────────────────────── */}
+        {/*  Message list  */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -287,7 +284,7 @@ export default function MessagesPage() {
                         </span>
                       )}
 
-                      {/* Ref number — pushed right */}
+                      {/* Ref number  pushed right */}
                       <span className="ml-auto text-[10px] text-blue-200 dark:text-slate-600 font-mono truncate max-w-[90px]">
                         {message.referenceNumber}
                       </span>
@@ -299,7 +296,7 @@ export default function MessagesPage() {
           )}
         </div>
 
-        {/* ── Footer count ──────────────────────────────────── */}
+        {/*  Footer count  */}
         {!loading && filtered.length > 0 && (
           <div className="px-4 py-2 border-t border-blue-50 dark:border-slate-800 bg-blue-50/40 dark:bg-slate-900/30">
             <p className="text-[10px] text-blue-300 dark:text-slate-500 text-center">
@@ -310,9 +307,7 @@ export default function MessagesPage() {
         )}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/* RIGHT PANEL — detail / placeholder                     */}
-      {/* ═══════════════════════════════════════════════════════ */}
+      {/* RIGHT PANEL  */}
       <div className={`flex-1 ${selectedId ? 'flex flex-col' : 'hidden md:flex md:flex-col'}`}>
         {selectedId ? (
           <MessageDetail
@@ -328,7 +323,7 @@ export default function MessagesPage() {
             }}
           />
         ) : (
-          /* ── Placeholder ── */
+          /*  Placeholder  */
           <div className="flex-1 flex flex-col items-center justify-center p-10 text-center select-none">
             {/* Decorative envelope illustration */}
             <div className="relative mb-6">
