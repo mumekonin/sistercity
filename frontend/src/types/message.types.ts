@@ -1,28 +1,35 @@
-export enum MessageType {
-  REQUEST      = 'REQUEST',
-  RESPONSE     = 'RESPONSE',
-  NOTIFICATION = 'NOTIFICATION',
-  INQUIRY      = 'INQUIRY',
-  COMPLAINT    = 'COMPLAINT',
-  INVITATION   = 'INVITATION',
-  APPROVAL     = 'APPROVAL',
-  REJECTION    = 'REJECTION',
-}
+// ── MessageType ──────────────────────────────────────────────
+export const MessageType = {
+  REQUEST:      'REQUEST',
+  RESPONSE:     'RESPONSE',
+  NOTIFICATION: 'NOTIFICATION',
+  INQUIRY:      'INQUIRY',
+  COMPLAINT:    'COMPLAINT',
+  INVITATION:   'INVITATION',
+  APPROVAL:     'APPROVAL',
+  REJECTION:    'REJECTION',
+} as const;
+export type MessageType = typeof MessageType[keyof typeof MessageType];
 
-export enum MessagePriority {
-  NORMAL   = 'NORMAL',
-  URGENT   = 'URGENT',
-  CRITICAL = 'CRITICAL',
-}
+//  MessagePriority
+export const MessagePriority = {
+  NORMAL:   'NORMAL',
+  URGENT:   'URGENT',
+  CRITICAL: 'CRITICAL',
+} as const;
+export type MessagePriority = typeof MessagePriority[keyof typeof MessagePriority];
 
-export enum MessageStatus {
-  SENT      = 'SENT',
-  READ      = 'READ',
-  REPLIED   = 'REPLIED',
-  ESCALATED = 'ESCALATED',
-  CLOSED    = 'CLOSED',
-}
+//  MessageStatus 
+export const MessageStatus = {
+  SENT:      'SENT',
+  READ:      'READ',
+  REPLIED:   'REPLIED',
+  ESCALATED: 'ESCALATED',
+  CLOSED:    'CLOSED',
+} as const;
+export type MessageStatus = typeof MessageStatus[keyof typeof MessageStatus];
 
+//  Sub-shapes 
 export interface MessageFrom {
   userId: string;
   city: string;
@@ -44,6 +51,7 @@ export interface ThreadItem {
   createdAt: Date;
 }
 
+// ── Full message (detail view) ───────────────────────────────
 export interface Message {
   id: string;
   referenceNumber: string;
@@ -67,6 +75,7 @@ export interface Message {
   updatedAt: Date;
 }
 
+// ── List item (inbox/sent rows) ──────────────────────────────
 export interface MessageListItem {
   id: string;
   referenceNumber: string;

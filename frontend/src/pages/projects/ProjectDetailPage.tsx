@@ -113,7 +113,6 @@ export default function ProjectDetailPage() {
   }
 
   const isAdmin = user?.role === 'CITY_ADMIN';
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isOfficer = user?.role === 'DEPT_OFFICER';
 
   // Receiving city (can approve/reject)

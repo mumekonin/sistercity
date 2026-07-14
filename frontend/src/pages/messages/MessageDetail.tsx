@@ -30,6 +30,8 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
       try {
         const data = await messagesApi.getById(messageId);
         setMessage(data);
+        // Notify parent so it can refresh the unread badge right away
+        onUpdated(data);
       } finally {
         setLoading(false);
       }

@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { useMessageStore } from '../../store/messages.store';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { startPolling, stopPolling } = useMessageStore();
+
+  // Start polling for unread messages when the authenticated shell mounts
+  useEffect(() => {
+    startPolling();
+    return () => stopPolling();
+  }, [startPolling, stopPolling]);
 
   return (
     <div className="min-h-screen flex bg-blue-50 dark:bg-[#0d1117] transition-colors">

@@ -1,13 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
 import { useUnreadCount } from '../../hooks/useNotifications';
+import { useMessageStore } from '../../store/messages.store';
 
-interface NavItem {
-  name: string;
-  path: string;
-  icon: React.ReactNode;
-  badge?: number;
-}
 
 const navigation = [
   {
@@ -161,13 +156,17 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user } = useAuthStore();
-  const unreadCount = useUnreadCount();
+  const notifCount = useUnreadCount();            // system notifications
+  const { unreadCount: msgCount } = useMessageStore(); // unread messages
 
   const navigationWithBadge = navigation.map((section) => ({
     ...section,
     items: section.items.map((item) => ({
       ...item,
-      badge: item.path === '/notifications' ? unreadCount : undefined,
+      badge:
+        item.path === '/notifications' ? notifCount :
+        item.path === '/messages'      ? msgCount   :
+        undefined,
     })),
   }));
 
