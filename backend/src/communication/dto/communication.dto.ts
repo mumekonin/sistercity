@@ -16,9 +16,9 @@ export class MessageToDto {
 }
 
 export class AttachmentDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsMongoId()
-  documentId!: string;
+  documentId?: string;
 
   @IsNotEmpty()
   @IsString()

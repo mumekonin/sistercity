@@ -25,8 +25,8 @@ class MessageTo {
 
 @Schema({ _id: false })
 class Attachment {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Document' })
-  documentId!: Types.ObjectId;
+  @Prop({ required: false, default: null, type: Types.ObjectId, ref: 'Document' })
+  documentId!: Types.ObjectId | null;
   @Prop({ required: true })
   fileName!: string;
   @Prop({ required: true })

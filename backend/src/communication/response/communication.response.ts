@@ -20,6 +20,7 @@ export class ThreadItemResponse {
   id?: string;
   referenceNumber?: string;
   from?: MessageFromResponse;
+  to?: MessageToResponse;
   body?: string;
   attachments?: AttachmentResponse[];
   createdAt?: Date;

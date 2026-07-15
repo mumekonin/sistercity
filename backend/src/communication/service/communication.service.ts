@@ -7,6 +7,7 @@ import { MessageStatus, MessagePriority, Role } from '../../common/enum/enum';
 import { Message } from '../schema/communication.schema';
 import { User } from 'src/users/schema/users.shema';
 import { Types } from 'mongoose';
+import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class MessageService {
@@ -15,7 +16,17 @@ export class MessageService {
     private readonly messageModel: Model<Message>,
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
+    private readonly cloudinaryService: CloudinaryService,
   ) { }
+
+  // Upload a file directly to Cloudinary for message attachment (no Document record created)
+  async uploadMessageAttachment(file: Express.Multer.File): Promise<{ fileUrl: string; fileName: string }> {
+    const uploaded = await this.cloudinaryService.uploadFile(file, 'sister-city/message-attachments');
+    return {
+      fileUrl: uploaded.fileUrl,
+      fileName: uploaded.fileName,
+    };
+  }
 
   private async generateReferenceNumber(city: string): Promise<string> {
     const year = new Date().getFullYear();
@@ -104,7 +115,7 @@ export class MessageService {
       priority: message.priority,
       body: message.body,
       attachments: message.attachments.map((a: any) => ({
-        documentId: a.documentId.toString(),
+        documentId: a.documentId ? a.documentId.toString() : null,
         fileName: a.fileName,
         fileUrl: a.fileUrl,
       })),
@@ -123,9 +134,14 @@ export class MessageService {
           department: t.from.department,
           name: t.from.name,
         },
+        to: {
+          city: t.to.city,
+          department: t.to.department,
+          userId: t.to.userId?.toString() ?? null,
+        },
         body: t.body,
         attachments: (t.attachments ?? []).map((a: any) => ({
-          documentId: a.documentId.toString(),
+          documentId: a.documentId ? a.documentId.toString() : null,
           fileName: a.fileName,
           fileUrl: a.fileUrl,
         })),
@@ -236,7 +252,9 @@ export class MessageService {
       message.status = MessageStatus.READ;
       message.readAt = new Date();
     }
-    const thread = await this.messageModel.find({ threadId: message.threadId, _id: { $ne: message._id }, }).sort({ createdAt: 1 }).lean();
+    
+    const threadIdToSearch = message.threadId || message._id;
+    const thread = await this.messageModel.find({ threadId: threadIdToSearch, _id: { $ne: message._id }, }).sort({ createdAt: 1 }).lean();
 
     return this.toMessageResponse(message, thread);
   }
@@ -261,7 +279,7 @@ export class MessageService {
     const reply = new this.messageModel({
       referenceNumber,
       responseDeadline,
-      threadId: parentMessage.threadId,
+      threadId: parentMessage.threadId || parentMessage._id,
       parentId: parentMessage._id,
       from: {
         userId: currentUser.userId,
