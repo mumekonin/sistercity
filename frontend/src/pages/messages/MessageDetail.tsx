@@ -308,13 +308,13 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
           <div className="mt-4 pt-4 border-t border-blue-50 dark:border-slate-800 flex items-center justify-between">
             <p className="text-xs text-blue-400 dark:text-slate-400">
               Response deadline:{' '}
-              <span className={isOverdue(displayOriginal.responseDeadline || message.responseDeadline) ? 'text-red-500 font-medium' : ''}>
-                {new Date(displayOriginal.responseDeadline || message.responseDeadline).toLocaleDateString()}
+              <span className={isOverdue(message.responseDeadline) ? 'text-red-500 font-medium' : ''}>
+                {new Date(message.responseDeadline).toLocaleDateString()}
               </span>
             </p>
-            {displayOriginal.readAt && (
+            {message.readAt && (
               <p className="text-xs text-green-500">
-                ✓ Read {new Date(displayOriginal.readAt).toLocaleDateString()}
+                ✓ Read {new Date(message.readAt).toLocaleDateString()}
               </p>
             )}
           </div>
