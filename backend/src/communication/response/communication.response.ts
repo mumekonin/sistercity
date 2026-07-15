@@ -21,6 +21,7 @@ export class ThreadItemResponse {
   referenceNumber?: string;
   from?: MessageFromResponse;
   body?: string;
+  attachments?: AttachmentResponse[];
   createdAt?: Date;
 }
 

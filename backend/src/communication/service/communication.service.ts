@@ -124,6 +124,11 @@ export class MessageService {
           name: t.from.name,
         },
         body: t.body,
+        attachments: (t.attachments ?? []).map((a: any) => ({
+          documentId: a.documentId.toString(),
+          fileName: a.fileName,
+          fileUrl: a.fileUrl,
+        })),
         createdAt: t.createdAt,
       })),
       createdAt: message.createdAt,
