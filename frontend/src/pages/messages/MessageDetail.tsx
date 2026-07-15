@@ -49,17 +49,11 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
       for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('title', file.name);
-        formData.append('category', 'EVIDENCE');
-        formData.append('description', 'Reply attachment');
-        formData.append('accessLevel', 'BOTH_CITIES');
-        formData.append('documentDate', new Date().toISOString().split('T')[0]);
         
-        const doc = await documentsApi.upload(formData);
+        const uploaded = await messagesApi.uploadAttachment(formData);
         attachments.push({
-          documentId: doc.id,
-          fileName: doc.fileName || doc.title,
-          fileUrl: doc.fileUrl,
+          fileName: uploaded.fileName,
+          fileUrl: uploaded.fileUrl,
         });
       }
 
@@ -99,6 +93,41 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
 
   if (!message) return null;
 
+  // Find the original message (either the current message, or the one in the thread with id === threadId)
+  const isCurrentOriginal = message.parentId === null || message.id === message.threadId;
+  const originalMessage = isCurrentOriginal
+    ? message 
+    : message.thread?.find(t => t.id === message.threadId);
+
+  const displayOriginal = originalMessage || message;
+
+  // Get all replies (if current is reply, it is a reply. plus all thread items that are not the original message)
+  const replies: any[] = [];
+  if (!isCurrentOriginal) {
+    replies.push({
+      id: message.id,
+      referenceNumber: message.referenceNumber,
+      from: message.from,
+      to: message.to,
+      body: message.body,
+      attachments: message.attachments,
+      createdAt: message.createdAt
+    });
+  }
+  if (message.thread) {
+    message.thread.forEach(t => {
+      if (t.id !== displayOriginal.id) {
+        replies.push(t);
+      }
+    });
+  }
+  // Sort replies chronologically
+  replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  // Determine who can reply (only the recipient of the last message in the thread)
+  const lastMessage = replies.length > 0 ? replies[replies.length - 1] : displayOriginal;
+  const isRecipient = lastMessage.to.city === user?.city && lastMessage.to.department === user?.department;
+
   const renderAttachments = (attachments: any[]) => {
     if (!attachments || attachments.length === 0) return null;
     return (
@@ -137,41 +166,47 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
                   </svg>
                 </a>
                 
-                {att.documentId && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const dl = await documentsApi.download(att.documentId);
-                        let downloadUrl = dl.fileUrl;
-
-                        // For Cloudinary URLs, inject fl_attachment to force download
-                        if (downloadUrl.includes('cloudinary.com') && downloadUrl.includes('/upload/')) {
-                          downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
+                <button
+                  onClick={async () => {
+                    try {
+                      let downloadUrl = att.fileUrl;
+                      
+                      if (att.documentId) {
+                        try {
+                          const dl = await documentsApi.download(att.documentId);
+                          if (dl && dl.fileUrl) downloadUrl = dl.fileUrl;
+                        } catch (e) {
+                          console.error('Failed to log document download', e);
                         }
-
-                        // Create a hidden <a> and programmatically click it
-                        const a = document.createElement('a');
-                        a.style.display = 'none';
-                        a.href = downloadUrl;
-                        a.download = att.fileName; // sets the saved filename
-                        // Do NOT set target="_blank" — that would open in browser
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                      } catch (err) {
-                        // Last resort: open in new tab if everything else fails
-                        window.open(att.fileUrl, '_blank');
                       }
-                    }}
-                    className="p-1.5 text-blue-500 hover:text-white bg-white hover:bg-[#1a4a8a] dark:bg-slate-800 dark:hover:bg-blue-600 rounded-md shadow-sm border border-blue-100 dark:border-slate-600 transition flex items-center gap-1"
-                    title="Download File"
-                  >
-                    <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline-block ml-1">Download</span>
-                    <svg className="w-4 h-4 sm:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
-                )}
+
+                      // For Cloudinary URLs, inject fl_attachment to force download
+                      if (downloadUrl.includes('cloudinary.com') && downloadUrl.includes('/upload/')) {
+                        downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
+                      }
+
+                      // Create a hidden <a> and programmatically click it
+                      const a = document.createElement('a');
+                      a.style.display = 'none';
+                      a.href = downloadUrl;
+                      a.download = att.fileName; // sets the saved filename
+                      // Do NOT set target="_blank" — that would open in browser
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                    } catch (err) {
+                      // Last resort: open in new tab if everything else fails
+                      window.open(att.fileUrl, '_blank');
+                    }
+                  }}
+                  className="p-1.5 text-blue-500 hover:text-white bg-white hover:bg-[#1a4a8a] dark:bg-slate-800 dark:hover:bg-blue-600 rounded-md shadow-sm border border-blue-100 dark:border-slate-600 transition flex items-center gap-1"
+                  title="Download File"
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline-block ml-1">Download</span>
+                  <svg className="w-4 h-4 sm:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
               </div>
             </div>
           ))}
@@ -240,58 +275,58 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#1a4a8a] rounded-full flex items-center justify-center shrink-0">
                 <span className="text-white text-sm font-bold">
-                  {message.from.name.charAt(0)}
+                  {displayOriginal.from.name.charAt(0)}
                 </span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-[#1a4a8a] dark:text-white">
-                  {message.from.name}
+                  {displayOriginal.from.name}
                 </p>
                 <p className="text-xs text-blue-400 dark:text-slate-400">
-                  {message.from.city} · {message.from.department}
+                  {displayOriginal.from.city} · {displayOriginal.from.department}
                 </p>
               </div>
             </div>
             <div className="text-right">
               <p className="text-xs text-blue-400 dark:text-slate-400">
-                {new Date(message.createdAt).toLocaleDateString()}
+                {new Date(displayOriginal.createdAt).toLocaleDateString()}
               </p>
               <p className="text-xs text-blue-300 dark:text-slate-500 mt-0.5">
-                To: {message.to.city} · {message.to.department}
+                To: {displayOriginal.to.city} · {displayOriginal.to.department}
               </p>
             </div>
           </div>
 
           {/* Body */}
           <div className="text-sm text-[#1a4a8a] dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-            {message.body}
+            {displayOriginal.body}
           </div>
 
-          {renderAttachments(message.attachments)}
+          {renderAttachments(displayOriginal.attachments || [])}
 
           {/* Deadline */}
           <div className="mt-4 pt-4 border-t border-blue-50 dark:border-slate-800 flex items-center justify-between">
             <p className="text-xs text-blue-400 dark:text-slate-400">
               Response deadline:{' '}
-              <span className={isOverdue(message.responseDeadline) ? 'text-red-500 font-medium' : ''}>
-                {new Date(message.responseDeadline).toLocaleDateString()}
+              <span className={isOverdue(displayOriginal.responseDeadline || message.responseDeadline) ? 'text-red-500 font-medium' : ''}>
+                {new Date(displayOriginal.responseDeadline || message.responseDeadline).toLocaleDateString()}
               </span>
             </p>
-            {message.readAt && (
+            {displayOriginal.readAt && (
               <p className="text-xs text-green-500">
-                ✓ Read {new Date(message.readAt).toLocaleDateString()}
+                ✓ Read {new Date(displayOriginal.readAt).toLocaleDateString()}
               </p>
             )}
           </div>
         </div>
 
         {/* Thread replies */}
-        {message.thread && message.thread.length > 0 && (
+        {replies.length > 0 && (
           <div className="space-y-3">
             <p className="text-xs font-semibold text-blue-300 dark:text-slate-500 uppercase tracking-wider px-1">
-              Replies ({message.thread.length})
+              Replies ({replies.length})
             </p>
-            {message.thread.map((reply) => (
+            {replies.map((reply) => (
               <div key={reply.id}
                 className="bg-white dark:bg-[#0f172a] rounded-xl border border-blue-100 dark:border-slate-700 p-5">
                 <div className="flex items-center gap-3 mb-3">
@@ -412,7 +447,7 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
         <div className="flex flex-wrap gap-2">
 
           {/* Reply */}
-          {message.status !== 'CLOSED' && (
+          {message.status !== 'CLOSED' && isRecipient && (
             <button
               onClick={() => setShowReply(!showReply)}
               className="flex items-center gap-1.5 bg-[#1a4a8a] hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { messagesApi } from '../../api/messages.api';
-import { documentsApi } from '../../api/documents.api';
+
 import type { Message } from '../../types/message.types';
 
 interface Props {
@@ -42,17 +42,11 @@ export default function NewMessageModal({ onClose, onSent }: Props) {
       for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('title', file.name);
-        formData.append('category', 'EVIDENCE');
-        formData.append('description', 'Message attachment');
-        formData.append('accessLevel', 'BOTH_CITIES');
-        formData.append('documentDate', new Date().toISOString().split('T')[0]);
         
-        const doc = await documentsApi.upload(formData);
+        const uploaded = await messagesApi.uploadAttachment(formData);
         attachments.push({
-          documentId: doc.id,
-          fileName: doc.fileName || doc.title,
-          fileUrl: doc.fileUrl,
+          fileName: uploaded.fileName,
+          fileUrl: uploaded.fileUrl,
         });
       }
 

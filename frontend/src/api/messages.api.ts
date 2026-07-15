@@ -31,4 +31,9 @@ export const messagesApi = {
     const response = await api.get('/messages/overdue');
     return response.data;
   },
+
+  uploadAttachment: async (formData: FormData): Promise<{ fileUrl: string; fileName: string }> => {
+    const response = await api.post('/messages/upload-attachment', formData);
+    return response.data;
+  },
 };

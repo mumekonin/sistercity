@@ -44,7 +44,7 @@ export interface MessageTo {
 }
 
 export interface Attachment {
-  documentId: string;
+  documentId?: string | null;
   fileName: string;
   fileUrl: string;
 }
@@ -53,6 +53,7 @@ export interface ThreadItem {
   id: string;
   referenceNumber: string;
   from: MessageFrom;
+  to: MessageTo;
   body: string;
   attachments?: Attachment[];
   createdAt: Date;
