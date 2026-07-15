@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { messagesApi } from '../../api/messages.api';
+import { documentsApi } from '../../api/documents.api';
 import type { Message } from '../../types/message.types';
 
 interface Props {
@@ -22,6 +23,7 @@ const priorities = ['NORMAL', 'URGENT', 'CRITICAL'];
 export default function NewMessageModal({ onClose, onSent }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
   const [form, setForm] = useState({
     subject: '',
     body: '',
@@ -36,6 +38,24 @@ export default function NewMessageModal({ onClose, onSent }: Props) {
     setError('');
     setLoading(true);
     try {
+      const attachments = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', file.name);
+        formData.append('category', 'EVIDENCE');
+        formData.append('description', 'Message attachment');
+        formData.append('accessLevel', 'BOTH_CITIES');
+        formData.append('documentDate', new Date().toISOString().split('T')[0]);
+        
+        const doc = await documentsApi.upload(formData);
+        attachments.push({
+          documentId: doc.id,
+          fileName: doc.fileName || doc.title,
+          fileUrl: doc.fileUrl,
+        });
+      }
+
       const msg = await messagesApi.send({
         subject: form.subject,
         body: form.body,
@@ -45,6 +65,7 @@ export default function NewMessageModal({ onClose, onSent }: Props) {
           city: form.toCity,
           department: form.toDepartment,
         },
+        attachments,
       });
       onSent(msg);
     } catch (err: any) {
@@ -166,6 +187,59 @@ export default function NewMessageModal({ onClose, onSent }: Props) {
                 placeholder="e.g. Request for Joint Transport Project"
                 className="w-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-[#1a4a8a] dark:text-white placeholder-blue-300 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
               />
+            </div>
+
+            {/* Attachments */}
+            <div>
+              <label className="block text-sm font-medium text-[#1a4a8a] dark:text-slate-300 mb-1">
+                Attachments <span className="text-blue-300 dark:text-slate-500">(optional)</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center justify-center px-4 py-2.5 bg-white dark:bg-slate-800 border-2 border-dashed border-blue-200 dark:border-slate-600 rounded-lg cursor-pointer hover:border-blue-400 dark:hover:border-slate-400 hover:bg-blue-50 dark:hover:bg-slate-700 transition group w-full sm:w-auto">
+                  <svg className="w-5 h-5 text-blue-500 dark:text-blue-400 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                  <span className="text-sm text-[#1a4a8a] dark:text-white font-medium">Browse Files...</span>
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              {files.length > 0 && (
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {files.map((f, i) => (
+                    <div key={i} className="flex items-center justify-between p-2.5 bg-blue-50/50 dark:bg-slate-800/50 border border-blue-100 dark:border-slate-700 rounded-lg shadow-sm">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-8 h-8 rounded bg-blue-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
+                          <svg className="w-4 h-4 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-[#1a4a8a] dark:text-slate-200 truncate">{f.name}</p>
+                          <p className="text-[10px] text-blue-400 dark:text-slate-400">{(f.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
+                        className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 rounded transition"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Body */}

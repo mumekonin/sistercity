@@ -43,11 +43,18 @@ export interface MessageTo {
   userId?: string | null;
 }
 
+export interface Attachment {
+  documentId: string;
+  fileName: string;
+  fileUrl: string;
+}
+
 export interface ThreadItem {
   id: string;
   referenceNumber: string;
   from: MessageFrom;
   body: string;
+  attachments?: Attachment[];
   createdAt: Date;
 }
 
@@ -63,7 +70,7 @@ export interface Message {
   messageType: MessageType;
   priority: MessagePriority;
   body: string;
-  attachments: any[];
+  attachments: Attachment[];
   relatedProject: string | null;
   status: MessageStatus;
   readAt: Date | null;

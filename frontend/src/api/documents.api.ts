@@ -13,16 +13,12 @@ export const documentsApi = {
   },
 
   upload: async (formData: FormData): Promise<DocumentFile> => {
-    const response = await api.post('/documents', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post('/documents', formData);
     return response.data;
   },
 
   uploadVersion: async (id: string, formData: FormData): Promise<DocumentFile> => {
-    const response = await api.post(`/documents/${id}/version`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post(`/documents/${id}/version`, formData);
     return response.data;
   },
 
