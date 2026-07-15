@@ -34,7 +34,7 @@ export class EventService {
         summary: null,
         decisions: [],
         confirmedByAdama: false,
-        confirmedBySheger: false,
+        confirmedByAurora: false,
       },
     });
 
