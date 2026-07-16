@@ -8,6 +8,8 @@ import ProjectDetailPage from '../pages/projects/ProjectDetailPage';
 import DocumentsPage from '../pages/documents/docuDocumentsPage';
 import MessagesPage from '../pages/messages/MessagesPage';
 import EventsPage from '../pages/events/EventsPage';
+import BudgetPage from '../pages/budget/BudgetPage';
+
 // Protected route
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -36,9 +38,9 @@ export default function Router() {
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/:id" element={<ProjectDetailPage />} />
           <Route path="documents" element={<DocumentsPage />} />
-           <Route path="messages" element={<MessagesPage />} />
-           <Route path="events" element={<EventsPage />} />
-          <Route path="budget" element={<div className="text-[#1a4a8a] text-2xl font-bold">Budget coming soon...</div>} />
+          <Route path="messages" element={<MessagesPage />} />
+          <Route path="events" element={<EventsPage />} />
+          <Route path="budget" element={<BudgetPage />} />
           <Route path="news" element={<div className="text-[#1a4a8a] text-2xl font-bold">News coming soon...</div>} />
           <Route path="notifications" element={<div className="text-[#1a4a8a] text-2xl font-bold">Notifications coming soon...</div>} />
           <Route path="reports" element={<div className="text-[#1a4a8a] text-2xl font-bold">Reports coming soon...</div>} />
