@@ -19,6 +19,7 @@ export enum EquipmentStatus {
   IN_USE    = 'IN_USE',
   DAMAGED   = 'DAMAGED',
   RETURNED  = 'RETURNED',
+  REPAIRED  = 'REPAIRED',
 }
 
 export interface Expenditure {
