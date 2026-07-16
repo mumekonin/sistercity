@@ -1,26 +1,29 @@
-export enum ExpenditureCategory {
-  PERSONNEL= 'PERSONNEL',
-  EQUIPMENT     = 'EQUIPMENT',
-  MATERIALS     = 'MATERIALS',
-  TRAVEL        = 'TRAVEL',
-  SERVICES      = 'SERVICES',
-  INFRASTRUCTURE= 'INFRASTRUCTURE',
-  OTHER         = 'OTHER',
-}  
+export const ExpenditureCategory = {
+  PERSONNEL: 'PERSONNEL',
+  EQUIPMENT: 'EQUIPMENT',
+  MATERIALS: 'MATERIALS',
+  TRAVEL: 'TRAVEL',
+  SERVICES: 'SERVICES',
+  INFRASTRUCTURE: 'INFRASTRUCTURE',
+  OTHER: 'OTHER',
+} as const;
+export type ExpenditureCategory = typeof ExpenditureCategory[keyof typeof ExpenditureCategory];
 
-export enum ExpenditureStatus {
-  PENDING  = 'PENDING',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED',
-}
+export const ExpenditureStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
+export type ExpenditureStatus = typeof ExpenditureStatus[keyof typeof ExpenditureStatus];
 
-export enum EquipmentStatus {
-  AVAILABLE = 'AVAILABLE',
-  IN_USE    = 'IN_USE',
-  DAMAGED   = 'DAMAGED',
-  RETURNED  = 'RETURNED',
-  REPAIRED  = 'REPAIRED',
-}
+export const EquipmentStatus = {
+  AVAILABLE: 'AVAILABLE',
+  IN_USE: 'IN_USE',
+  DAMAGED: 'DAMAGED',
+  RETURNED: 'RETURNED',
+  REPAIRED: 'REPAIRED',
+} as const;
+export type EquipmentStatus = typeof EquipmentStatus[keyof typeof EquipmentStatus];
 
 export interface Expenditure {
   id: string;

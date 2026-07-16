@@ -1,23 +1,8 @@
 import { useEffect, useState } from 'react';
-import {
-  LayoutList,
-  Wallet,
-  PiggyBank,
-  FolderOpen,
-  TrendingUp,
-  Plus,
-  AlertTriangle,
-  Wrench,
-  Receipt,
-  Link2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Loader2,
-} from 'lucide-react';
+import { LayoutList,Wallet,PiggyBank,FolderOpen,TrendingUp,Plus,AlertTriangle,Wrench,Receipt,Link2,CheckCircle2,XCircle, Clock, Loader2} from 'lucide-react';
 import { budgetApi, equipmentApi } from '../../api/budget.api';
 import type { BudgetSummary, Budget, Equipment } from '../../types/budget.types';
-import { ExpenditureStatus, EquipmentStatus } from '../../types/budget.types';
+import { EquipmentStatus } from '../../types/budget.types';
 import { useAuthStore } from '../../store/auth.store';
 import RecordExpenditureModal from './RecordExpenditureModal';
 import AddEquipmentModal from './AddEquipmentModal';
