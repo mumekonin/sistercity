@@ -7,56 +7,53 @@ import { Role } from '../../common/enum/enum';
 import { CreateExpenditureDto, UpdateExpenditureDto } from '../dto/budget.dto';
 import { multerConfig } from '../../common/cloudinary/multer.config';
 import { BudgetService } from '../service/budget.service';
-import { CreateEquipmentDto, UpdateEquipmentDto } from '../dto/equipment.dto';
 
 @Controller('/budgets')
 export class BudgetController {
   constructor(
     private readonly budgetService: BudgetService,
   ) { }
-  @Post('/:projectId')
-  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
-  @UseInterceptors(FileInterceptor('file', multerConfig))
-  async recordExpenditure(@Param('projectId') projectId: string, @UploadedFile() file: any, @Body() createExpenditureDto: CreateExpenditureDto, @Req() req: any) {
-    return this.budgetService.recordExpenditure(projectId, createExpenditureDto, file, req.user);
-  }
-  @Get('/:projectId')
-  @UseGuards(AuthGuard('jwt'))
-  async getBudgetByProject(
-    @Param('projectId') projectId: string,
-    @Req() req: any,
-  ) {
-    return this.budgetService.getBudgetByProject(projectId, req.user,);
-  }
-  @Patch('/:projectId/expenditures/:eid')
-  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN)
-  async updateExpenditure(@Param('projectId') projectId: string, @Param('eid') eid: string, @Body() updateExpenditureDto: UpdateExpenditureDto, @Req() req: any) {
-    return this.budgetService.updateExpenditure(projectId, eid, updateExpenditureDto, req.user);
-  }
+
+  // IMPORTANT: /summary must come BEFORE /:projectId to avoid
+  // "summary" being parsed as a MongoDB ObjectId param
   @Get('/summary')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
   async getBudgetSummary(@Req() req: any) {
     return this.budgetService.getBudgetSummary(req.user);
   }
+
   @Post('/:projectId')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN)
-  async addEquipment(@Param('projectId') projectId: string, @Body() createEquipmentDto: CreateEquipmentDto, @Req() req: any) {
-    return this.budgetService.addEquipment(projectId, createEquipmentDto, req.user);
+  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async recordExpenditure(
+    @Param('projectId') projectId: string,
+    @UploadedFile() file: any,
+    @Body() createExpenditureDto: CreateExpenditureDto,
+    @Req() req: any,
+  ) {
+    return this.budgetService.recordExpenditure(projectId, createExpenditureDto, file, req.user);
   }
+
   @Get('/:projectId')
   @UseGuards(AuthGuard('jwt'))
-  async getEquipmentByProject(@Param('projectId') projectId: string, @Req() req: any) {
-    return this.budgetService.getEquipmentByProject(projectId, req.user);
+  async getBudgetByProject(
+    @Param('projectId') projectId: string,
+    @Req() req: any,
+  ) {
+    return this.budgetService.getBudgetByProject(projectId, req.user);
   }
-  @Patch('/:id')
+
+  @Patch('/:projectId/expenditures/:eid')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
-  async updateEquipment(@Param('id') id: string, @Body() updateEquipmentDto: UpdateEquipmentDto, @Req() req: any,
+  async updateExpenditure(
+    @Param('projectId') projectId: string,
+    @Param('eid') eid: string,
+    @Body() updateExpenditureDto: UpdateExpenditureDto,
+    @Req() req: any,
   ) {
-    return this.budgetService.updateEquipment(id, updateEquipmentDto, req.user);
+    return this.budgetService.updateExpenditure(projectId, eid, updateExpenditureDto, req.user);
   }
 }
