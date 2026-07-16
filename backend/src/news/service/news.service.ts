@@ -196,8 +196,27 @@ export class NewsService {
       isJoint: news.isJoint,
       approvalStatus: news.approvalStatus,
       publishedAt: news.publishedAt,
-      views: news.views,
-      createdAt: news.createdAt,
+    };
+  }
+  
+  async getManageNews(category?: string, city?: string, page: number = 1, limit: number = 10, currentUser?: any) {
+    const filter: any = {};
+    if (category) filter.category = category;
+    if (city) filter.postedByCity = city;
+
+    if (currentUser?.role === Role.CITY_ADMIN) {
+      filter.$or = [
+        { postedByCity: currentUser.city },
+        { isJoint: true }
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const news = await this.newsModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
+    const total = await this.newsModel.countDocuments(filter);
+
+    return {
+      data: news.map((n) => this.toNewsListResponse(n)), total, page, limit,
     };
   }
   async getNewsById(id: string): Promise<NewsResponse> {
@@ -207,13 +226,23 @@ export class NewsService {
       throw new ForbiddenException('This article is not available');
     }
     await this.newsModel.findByIdAndUpdate(id, { $inc: { views: 1 } });
-    news.views = news.views + 1;
+    return this.toNewsResponse(news);
+  }
+
+  async getManageNewsById(id: string, currentUser: any): Promise<NewsResponse> {
+    const news = await this.newsModel.findById(id).lean();
+    if (!news) throw new NotFoundException('News not found');
+    
+    if (currentUser.role === Role.CITY_ADMIN && news.postedByCity !== currentUser.city && news.postedByCity !== NewsPostedByCity.JOINT) {
+      throw new ForbiddenException('You can only view your own city\'s unpublished articles');
+    }
+    
     return this.toNewsResponse(news);
   }
   async deleteNews(id: string, currentUser: any): Promise<{ message: string }> {
     const news = await this.newsModel.findById(id);
     if (!news) throw new NotFoundException('News not found');
-    if (currentUser.role !== Role.SUPER_ADMIN && news.postedByCity !== currentUser.city) {
+    if (currentUser.role !== Role.SUPER_ADMIN && news.postedByCity !== currentUser.city && news.postedByCity !== NewsPostedByCity.JOINT) {
       throw new ForbiddenException('You can only delete your own city articles');
     }
     // cannot delete published article

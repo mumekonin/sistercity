@@ -23,6 +23,20 @@ export class NewsController {
   async updateNews(@Param('id') id: string, @Body() updateNewsDto: UpdateNewsDto, @UploadedFiles() files: Express.Multer.File[], @Req() req: any) {
     return this.newsService.updateNews(id, updateNewsDto, files, req.user);
   }
+  @Get('/manage')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
+  async getManageNews(@Query('category') category?: string, @Query('city') city?: string, @Query('page') page?: string, @Query('limit') limit?: string, @Req() req?: any) {
+    return this.newsService.getManageNews(category, city, page ? parseInt(page) : 1, limit ? parseInt(limit) : 10, req.user);
+  }
+
+  @Get('/manage/:id')
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
+  @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
+  async getManageNewsById(@Param('id') id: string, @Req() req?: any) {
+    return this.newsService.getManageNewsById(id, req.user);
+  }
+
   @Get('/')
   async getAllNews(@Query('category') category?: string, @Query('city') city?: string, @Query('page') page?: string, @Query('limit') limit?: string) {
     return this.newsService.getAllNews(category, city, page ? parseInt(page) : 1, limit ? parseInt(limit) : 10,);
