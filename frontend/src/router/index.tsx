@@ -10,6 +10,8 @@ import MessagesPage from '../pages/messages/MessagesPage';
 import EventsPage from '../pages/events/EventsPage';
 import BudgetPage from '../pages/budget/BudgetPage';
 import NewsPage from '../pages/news/NewsPage';
+import NotificationsPage from '../pages/notifications/NotificationsPage';
+import SearchPage from '../pages/search/SearchPage';
 // Protected route
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -42,11 +44,11 @@ export default function Router() {
           <Route path="events" element={<EventsPage />} />
           <Route path="budget" element={<BudgetPage />} />
           <Route path="news" element={<NewsPage />} />
-          <Route path="notifications" element={<div className="text-[#1a4a8a] text-2xl font-bold">Notifications coming soon...</div>} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="reports" element={<div className="text-[#1a4a8a] text-2xl font-bold">Reports coming soon...</div>} />
           <Route path="admin" element={<div className="text-[#1a4a8a] text-2xl font-bold">Administration coming soon...</div>} />
           <Route path="settings" element={<div className="text-[#1a4a8a] text-2xl font-bold">Settings coming soon...</div>} />
-          <Route path="search" element={<div className="text-[#1a4a8a] text-2xl font-bold">Search coming soon...</div>} />
+          <Route path="search" element={<SearchPage />} />
         </Route>
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/login" />} />

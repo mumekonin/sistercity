@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import api from '../api/axios';
+import { notificationsApi } from '../api/notifications.api';
 
 export function useUnreadCount() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -7,16 +7,14 @@ export function useUnreadCount() {
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const response = await api.get('/notifications');
-        setUnreadCount(response.data.unreadCount ?? 0);
+        const response = await notificationsApi.getAll();
+        setUnreadCount(response.unreadCount ?? 0);
       } catch {
         setUnreadCount(0);
       }
     };
 
     fetchUnreadCount();
-
-    // refresh every 30 seconds
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
