@@ -160,6 +160,7 @@ export enum EquipmentStatus {
   IN_USE = 'IN_USE',
   RETURNED = 'RETURNED',
   DAMAGED = 'DAMAGED',
+  REPAIRED = 'REPAIRED',
 }
 //news enums
 export enum NewsCategory {

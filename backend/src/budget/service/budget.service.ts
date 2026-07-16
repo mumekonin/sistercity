@@ -201,9 +201,9 @@ export class BudgetService {
         `Cannot update an expenditure with status ${expenditure.status}`
       );
     }
-    //  City Admin approves city expenditures
-    if (expenditure.city !== currentUser.city) {
-      throw new ForbiddenException('You can only approve expenditures from your own city');
+    // Partner city (or SUPER_ADMIN) must approve the expenditure
+    if (currentUser.role !== Role.SUPER_ADMIN && expenditure.city === currentUser.city) {
+      throw new ForbiddenException('You cannot approve your own city\'s expenditures. The partner city must approve them.');
     }
     switch (updateExpenditureDto.action) {
       case 'approve': {
@@ -213,11 +213,17 @@ export class BudgetService {
           currentUser.userId as any;
         budget.expenditures[expenditureIndex].approvedAt =
           new Date() as any;
-        // Update spent totals only when approved
+        // Update spent totals only when approved, checking against planned budget
         if (expenditure.city === City.ADAMA) {
+          if (budget.spentAdama + expenditure.amount > project.budgetAdama) {
+            throw new BadRequestException('Approval denied: This expenditure exceeds the allocated budget for Adama.');
+          }
           budget.spentAdama += expenditure.amount;
         }
         if (expenditure.city === City.AURORA) {
+          if (budget.spentAurora + expenditure.amount > project.budgetAurora) {
+            throw new BadRequestException('Approval denied: This expenditure exceeds the allocated budget for Aurora.');
+          }
           budget.spentAurora += expenditure.amount;
         }
         budget.spentTotal = budget.spentAdama + budget.spentAurora;
@@ -369,7 +375,8 @@ export class BudgetService {
       [EquipmentStatus.AVAILABLE]: [EquipmentStatus.IN_USE],
       [EquipmentStatus.IN_USE]: [EquipmentStatus.RETURNED, EquipmentStatus.DAMAGED],
       [EquipmentStatus.RETURNED]: [EquipmentStatus.AVAILABLE],
-      [EquipmentStatus.DAMAGED]: [EquipmentStatus.RETURNED],
+      [EquipmentStatus.DAMAGED]: [EquipmentStatus.REPAIRED, EquipmentStatus.RETURNED],
+      [EquipmentStatus.REPAIRED]: [EquipmentStatus.AVAILABLE, EquipmentStatus.IN_USE],
     };
     const allowed = allowedTransitions[equipment.status];
     if (!allowed || !allowed.includes(updateEquipmentDto.status)) {

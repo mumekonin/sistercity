@@ -12,6 +12,7 @@ export class CreateExpenditureDto {
 
   @IsNumber()
   @Min(1)
+  @Type(() => Number)
   amount!: number;            
 
   @IsDate()
