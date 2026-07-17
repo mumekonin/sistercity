@@ -144,13 +144,13 @@ export class UserService {
     const excludeFilter = { _id: { $ne: currentUser.userId }, role: { $ne: Role.SUPER_ADMIN } };
     if (currentUser.role === Role.SUPER_ADMIN) {
       users = await this.userModel
-        .find({ _id: { $ne: currentUser.userId }, isActive: true })
+        .find({ _id: { $ne: currentUser.userId } })
         .select('-password')
         .lean();
     }
     if (currentUser.role === Role.CITY_ADMIN) {
       users = await this.userModel
-        .find({ city: currentUser.city, isActive: true, ...excludeFilter })
+        .find({ city: currentUser.city, ...excludeFilter })
         .select('-password')
         .lean();
     }

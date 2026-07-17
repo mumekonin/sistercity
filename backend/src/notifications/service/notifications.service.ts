@@ -54,9 +54,9 @@ export class NotificationService {
     if ((notification as any).recipient.toString() !== currentUser.userId) {
       throw new ForbiddenException('You can only mark your own notifications as read');
     }
-    // already read
+    // already read — return without error (idempotent)
     if ((notification as any).isRead) {
-      throw new BadRequestException('Notification is already marked as read');
+      return this.toNotificationResponse(notification);
     }
     const updated = await this.notificationModel
       .findByIdAndUpdate(id, { isRead: true, readAt: new Date() }, { new: true }).lean();
@@ -216,5 +216,7 @@ export class NotificationService {
         unreadNotifications,
       };
     }
+    // Unknown role — return empty dashboard instead of undefined
+    throw new ForbiddenException('Dashboard is not available for your role');
   }
 }
