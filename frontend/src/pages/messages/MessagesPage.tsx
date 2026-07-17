@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { messagesApi } from '../../api/messages.api';
 import type { Message, MessageListItem } from '../../types/message.types';
 import { useMessageStore } from '../../store/messages.store';
@@ -61,6 +62,15 @@ export default function MessagesPage() {
   const [search, setSearch] = useState('');
   const [prevUnread, setPrevUnread] = useState(0);
   const [badgePop, setBadgePop] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.state?.openId) {
+      setSelectedId(location.state.openId);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const fetchMessages = useCallback(async (type: string) => {
     setLoading(true);

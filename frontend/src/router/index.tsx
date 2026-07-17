@@ -12,6 +12,10 @@ import BudgetPage from '../pages/budget/BudgetPage';
 import NewsPage from '../pages/news/NewsPage';
 import NotificationsPage from '../pages/notifications/NotificationsPage';
 import SearchPage from '../pages/search/SearchPage';
+import ReportsPage from '../pages/reports/ReportsPage';
+import AdminPage from '../pages/admin/AdminPage';
+import SettingsPage from '../pages/settings/SettingsPage';
+import DashboardPage from '../pages/dashboard/DashboardPage';
 // Protected route
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -35,7 +39,7 @@ export default function Router() {
           }
         >
           <Route index element={<Navigate to="/dashboard" />} />
-          <Route path="dashboard" element={<div className="text-[#1a4a8a] text-2xl font-bold">Dashboard coming soon...</div>} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="cities" element={<CityProfilesPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/:id" element={<ProjectDetailPage />} />
@@ -45,9 +49,9 @@ export default function Router() {
           <Route path="budget" element={<BudgetPage />} />
           <Route path="news" element={<NewsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="reports" element={<div className="text-[#1a4a8a] text-2xl font-bold">Reports coming soon...</div>} />
-          <Route path="admin" element={<div className="text-[#1a4a8a] text-2xl font-bold">Administration coming soon...</div>} />
-          <Route path="settings" element={<div className="text-[#1a4a8a] text-2xl font-bold">Settings coming soon...</div>} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="admin" element={<AdminPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="search" element={<SearchPage />} />
         </Route>
         {/* Fallback */}

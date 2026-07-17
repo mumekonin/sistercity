@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { newsApi } from '../../api/news.api';
 import type { NewsListItem } from '../../types/news.types';
 import { useAuthStore } from '../../store/auth.store';
@@ -41,6 +42,15 @@ export default function NewsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [viewMode, setViewMode] = useState<'public' | 'manage'>('public');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.state?.openId) {
+      setSelectedId(location.state.openId);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const limit = 9;
 

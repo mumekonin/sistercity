@@ -220,7 +220,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-6 overflow-y-auto scrollbar-hide">
           {navigationWithBadge.map((section) => (
             <div key={section.group}>
               <p className="text-xs font-semibold text-blue-300 dark:text-slate-500 tracking-wider mb-2 px-3">

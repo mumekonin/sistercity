@@ -52,3 +52,22 @@ export interface SearchItem {
   link: string;
   [key: string]: any;
 }
+
+export interface DashboardStats {
+  role: string;
+  city?: string;
+  department?: string;
+  
+  totalProjects?: number;
+  activeProjects?: number;
+  completedProjects?: number;
+  pendingProjects?: number;
+  
+  urgentMessages?: number;
+  unreadMessages?: number;
+  
+  upcomingEvents?: number;
+  unreadNotifications?: number;
+  
+  myTasks?: number;
+}

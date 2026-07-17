@@ -101,7 +101,12 @@ export default function SearchPage() {
   };
 
   const handleItemClick = (link: string) => {
-    navigate(link);
+    const parts = link.split('/');
+    if (parts.length === 3 && ['messages', 'events', 'news'].includes(parts[1])) {
+      navigate(`/${parts[1]}`, { state: { openId: parts[2] } });
+    } else {
+      navigate(link);
+    }
   };
 
   const getSections = () => {

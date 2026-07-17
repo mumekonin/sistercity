@@ -1,7 +1,12 @@
 import api from './axios';
-import type { NotificationsResponse, SearchResults } from '../types/notification.types';
+import type { NotificationsResponse, SearchResults, DashboardStats } from '../types/notification.types';
 
 export const notificationsApi = {
+  getDashboard: async (): Promise<DashboardStats> => {
+    const response = await api.get('/dashboard');
+    return response.data;
+  },
+
   getAll: async (): Promise<NotificationsResponse> => {
     const response = await api.get('/notifications');
     return response.data;

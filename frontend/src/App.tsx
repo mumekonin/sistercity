@@ -6,11 +6,7 @@ export default function App() {
   const { isDark } = useThemeStore();
 
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
   return <Router />;
 }

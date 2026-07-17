@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { eventsApi } from '../../api/events.api';
 import type { EventListItem } from '../../types/event.types';
 import { useAuthStore } from '../../store/auth.store';
@@ -42,6 +43,15 @@ export default function EventsPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.state?.openId) {
+      setSelectedId(location.state.openId);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const fetchEvents = async () => {
     setLoading(true);

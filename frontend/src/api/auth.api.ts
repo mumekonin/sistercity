@@ -1,5 +1,6 @@
 import api from './axios';
 import type { LoginRequest, LoginResponse } from '../types/auth.types';
+import type { ChangePasswordRequest } from '../types/settings.types';
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
@@ -15,4 +16,8 @@ export const authApi = {
     const response = await api.post('/auth/refresh', { refreshToken });
     return response.data;
   },
+    changePassword: async (data: ChangePasswordRequest): Promise<{ message: string }> => {
+    const response = await api.post('/auth/change-password', data);
+    return response.data;
+  }
 };
