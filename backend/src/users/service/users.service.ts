@@ -8,11 +8,15 @@ import { UserResponse } from "../response/users.response";
 import { commonUtils } from "../../common/utils/utils";
 import { Role } from "src/common/enum/enum";
 import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
+import { EmailService } from '../../email/email.service';
+
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
+    private readonly emailService: EmailService,
   ) { }
 
   async createUser(createUserDto: CreateUserDto, currentUser: any) {
@@ -280,5 +284,51 @@ export class UserService {
   } catch (error) {
     throw new UnauthorizedException('Invalid or expired session.');
   }
+}
+async forgotPassword(email: string): Promise<{ message: string }> {
+  const user = await this.userModel.findOne({ email });
+  if (!user) {
+    // don't reveal if email exists
+    return { message: 'If this email exists, a reset link has been sent' };
+  }
+
+  // generate plain token to send to user
+  const plainToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(plainToken).digest('hex');
+  const expiry = new Date(Date.now() + 3600000); 
+
+  // save hashed token to user
+  user.resetToken = hashedToken;
+  user.resetTokenExpiry = expiry;
+  await user.save();
+
+  // send email with reset link containing the plain token
+  await this.emailService.sendPasswordResetEmail(user.email, plainToken);
+
+  return {
+    message: 'If this email exists, a reset link has been sent',
+  };
+}
+
+async resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<{ message: string }> {
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await this.userModel.findOne({
+    resetToken: hashedToken,
+    resetTokenExpiry: { $gt: new Date() },
+  });
+
+  if (!user) {
+    throw new BadRequestException('Invalid or expired reset token');
+  }
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.resetToken = null;
+  user.resetTokenExpiry = null;
+  await user.save();
+
+  return { message: 'Password reset successfully' };
 }
 }

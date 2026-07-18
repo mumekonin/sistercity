@@ -32,4 +32,15 @@ export class AuthController {
   async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.userService.refreshTokens(refreshTokenDto.refreshToken);
   }
+  @Post('/forgot-password')
+async forgotPassword(@Body() body: { email: string }) {
+  return this.userService.forgotPassword(body.email);
+}
+
+@Post('/reset-password')
+async resetPassword(
+  @Body() body: { token: string; newPassword: string }
+) {
+  return this.userService.resetPassword(body.token, body.newPassword);
+}
 }
