@@ -25,7 +25,8 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(to: string, token: string): Promise<void> {
-    const resetUrl = `http://localhost:5173/reset-password?token=${token}`; 
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
     const mailOptions = {
       from: `"Sister City App" <${this.configService.get<string>('MAIL_USER')}>`,

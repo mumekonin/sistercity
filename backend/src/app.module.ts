@@ -16,10 +16,15 @@ import { SearchModule } from './search/search.module';
 import { NotificationModule } from './notifications/notification.module';
 import { ReportsModule } from './reports/reports.module';
 import { EmailModule } from './email/email.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100,
+    }]),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
