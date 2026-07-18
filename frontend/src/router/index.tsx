@@ -16,6 +16,8 @@ import ReportsPage from '../pages/reports/ReportsPage';
 import AdminPage from '../pages/admin/AdminPage';
 import SettingsPage from '../pages/settings/SettingsPage';
 import DashboardPage from '../pages/dashboard/DashboardPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
 // Protected route
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -55,6 +57,9 @@ export default function Router() {
           <Route path="search" element={<SearchPage />} />
         </Route>
         {/* Fallback */}
+        <Route path="/login" element={<LoginPage />} />
+<Route path="/forgot-password" element={<ForgotPasswordPage />} />
+<Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
