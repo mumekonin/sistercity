@@ -63,14 +63,20 @@ api.interceptors.response.use(
             localStorage.removeItem(k);
             sessionStorage.removeItem(k);
           });
-          window.location.href = '/login';
+          const publicPaths = ['/', '/login', '/forgot-password', '/reset-password'];
+          if (!publicPaths.includes(window.location.pathname)) {
+            window.location.href = '/login';
+          }
         }
       } else {
         ['token', 'refreshToken', 'user'].forEach((k) => {
           localStorage.removeItem(k);
           sessionStorage.removeItem(k);
         });
-        window.location.href = '/login';
+        const publicPaths = ['/', '/login', '/forgot-password', '/reset-password'];
+        if (!publicPaths.includes(window.location.pathname)) {
+          window.location.href = '/login';
+        }
       }
     }
 

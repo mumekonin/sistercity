@@ -518,7 +518,7 @@ function DashboardPage() {
                 />
                 <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 8 }} />
                 <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                  {activityBarData.map((d, i) => (
+                  {activityBarData.map((_, i) => (
                     <Cell key={i} fill={`url(#grad${i})`} />
                   ))}
                 </Bar>

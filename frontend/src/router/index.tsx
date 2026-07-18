@@ -18,6 +18,8 @@ import SettingsPage from '../pages/settings/SettingsPage';
 import DashboardPage from '../pages/dashboard/DashboardPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
+import LandingPage from '../pages/landing/LandingPage';
+
 // Protected route
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -29,37 +31,36 @@ export default function Router() {
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
 
         {/* Protected routes */}
         <Route
-          path="/"
           element={
             <ProtectedRoute>
               <Layout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard" />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="cities" element={<CityProfilesPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
-          <Route path="projects/:id" element={<ProjectDetailPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
-          <Route path="messages" element={<MessagesPage />} />
-          <Route path="events" element={<EventsPage />} />
-          <Route path="budget" element={<BudgetPage />} />
-          <Route path="news" element={<NewsPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="admin" element={<AdminPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="search" element={<SearchPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/cities" element={<CityProfilesPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:id" element={<ProjectDetailPage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/events" element={<EventsPage />} />
+          <Route path="/budget" element={<BudgetPage />} />
+          <Route path="/news" element={<NewsPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/search" element={<SearchPage />} />
         </Route>
         {/* Fallback */}
         <Route path="/login" element={<LoginPage />} />
-<Route path="/forgot-password" element={<ForgotPasswordPage />} />
-<Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
