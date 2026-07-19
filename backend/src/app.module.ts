@@ -16,7 +16,8 @@ import { SearchModule } from './search/search.module';
 import { NotificationModule } from './notifications/notification.module';
 import { ReportsModule } from './reports/reports.module';
 import { EmailModule } from './email/email.module';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -46,6 +47,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
     EmailModule
   ],
   controllers: [AppController],
-  providers: [AppService , JwtStrategy],
+  providers: [AppService , JwtStrategy,{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

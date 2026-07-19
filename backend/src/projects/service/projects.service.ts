@@ -132,8 +132,8 @@ export class ProjectsService {
         project.proposedBy === currentUser.city ||
         (currentUser.city === City.ADAMA && project.adama !== null) ||
         (currentUser.city === City.AURORA && project.aurora !== null) ||
-        // Receiving city must be able to view PROPOSED projects to approve/reject them
-        (project.status === ProjectStatus.PROPOSED && project.proposedBy !== currentUser.city);
+        // The receiving city is always involved in joint initiatives
+        (project.proposedBy !== currentUser.city);
 
       if (!isInvolved) {
         throw new ForbiddenException(
@@ -467,8 +467,8 @@ export class ProjectsService {
           $or: [
             { proposedBy: City.ADAMA },
             { 'adama.department': { $exists: true, $ne: null } },
-            // Adama needs to see proposals FROM Aurora waiting for Adama's approval
-            { status: ProjectStatus.PROPOSED, proposedBy: City.AURORA },
+            // Adama needs to see all proposals FROM Aurora
+            { proposedBy: City.AURORA },
           ]
         }).lean();
       }
@@ -478,8 +478,8 @@ export class ProjectsService {
           $or: [
             { proposedBy: City.AURORA },
             { 'aurora.department': { $exists: true, $ne: null } },
-            // Aurora needs to see proposals FROM Adama waiting for Aurora's approval
-            { status: ProjectStatus.PROPOSED, proposedBy: City.ADAMA },
+            // Aurora needs to see all proposals FROM Adama
+            { proposedBy: City.ADAMA },
           ]
         }).lean();
       }
