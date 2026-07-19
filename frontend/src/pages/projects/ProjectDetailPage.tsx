@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { projectsApi } from '../../api/Projects.api';
 import type { Project, Milestone, Task, Issue, MilestoneStatus, TaskStatus, IssueStatus, IssueSeverity, TaskPriority, Responsible } from '../../types/projects.types';
 import { useAuthStore } from '../../store/auth.store';
+import { Department } from '../../types/enums';
 
 //  Helpers 
 
@@ -826,8 +827,15 @@ function AssignModal({ projectId, onClose, onUpdated }: { projectId: string; onC
       <div className="space-y-4 mb-5">
         <div>
           <label className="block text-xs font-semibold text-[#1a4a8a] dark:text-slate-300 mb-1.5 uppercase tracking-wide">Department Name</label>
-          <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Public Works"
-            className="w-full bg-blue-50 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm text-[#1a4a8a] dark:text-white placeholder-blue-300 focus:outline-none focus:border-blue-400 transition" />
+          <select value={department} onChange={(e) => setDepartment(e.target.value)}
+            className="w-full bg-blue-50 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-400 transition">
+            <option value="">Select department...</option>
+            {Object.values(Department).map((dept) => (
+              <option key={dept} value={dept}>
+                {dept.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-xs font-semibold text-[#1a4a8a] dark:text-slate-300 mb-1.5 uppercase tracking-wide">Focal Person (User ID)</label>

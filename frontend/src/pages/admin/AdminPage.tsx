@@ -9,6 +9,7 @@ import {
   Lock,
   CheckCircle2,
   XCircle,
+  Copy,
 } from 'lucide-react';
 import { adminApi } from '../../api/admin.api';
 import type { AdminUser } from '../../types/admin.types';
@@ -118,6 +119,7 @@ export default function AdminPage() {
               <thead>
                 <tr className="border-b border-blue-100 dark:border-slate-700 text-left">
                   <th className="px-5 py-3 font-medium text-blue-400 dark:text-slate-400">Name</th>
+                  <th className="px-5 py-3 font-medium text-blue-400 dark:text-slate-400">User ID</th>
                   <th className="px-5 py-3 font-medium text-blue-400 dark:text-slate-400">Role</th>
                   <th className="px-5 py-3 font-medium text-blue-400 dark:text-slate-400">City / Dept.</th>
                   <th className="px-5 py-3 font-medium text-blue-400 dark:text-slate-400">Status</th>
@@ -142,6 +144,20 @@ export default function AdminPage() {
                             <p className="font-medium text-[#1a4a8a] dark:text-white">{u.fullName}</p>
                             <p className="text-xs text-blue-400 dark:text-slate-400">{u.email}</p>
                           </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-mono text-blue-500 dark:text-slate-300">{u.id?.slice(0, 8)}...</span>
+                          <button
+                            onClick={() => {
+                              if (u.id) navigator.clipboard.writeText(u.id);
+                            }}
+                            className="text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition"
+                            title="Copy full ID"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                       <td className="px-5 py-3.5">

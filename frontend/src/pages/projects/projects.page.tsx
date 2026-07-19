@@ -43,10 +43,6 @@ export default function ProjectsPage() {
   const [cityFilter, setCityFilter] = useState('ALL');
   const [showCreate, setShowCreate] = useState(false);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
   const fetchProjects = async () => {
     try {
       setLoading(true);
@@ -58,6 +54,10 @@ export default function ProjectsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
   const handleCreated = (project: any) => {
     setProjects((prev) => [project, ...prev]);

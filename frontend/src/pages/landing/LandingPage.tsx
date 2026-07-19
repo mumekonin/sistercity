@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Calendar, Newspaper, Users, ArrowRight, Building2, Globe2,
+  Calendar,  Users, ArrowRight, Building2, Globe2,
   ChevronRight, Activity, MapPin, Moon, Sun, ExternalLink,
   BarChart2, Landmark, Shield
 } from 'lucide-react';
@@ -55,7 +55,7 @@ export default function LandingPage() {
             <div className="flex items-center space-x-3">
               <img src="/vite.jpg" alt="SisterCity Logo" className="h-10 w-auto rounded shadow-sm" />
               <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent tracking-tight">
-                SisterCity
+                Adama-Aurora SisterCity
               </span>
             </div>
 

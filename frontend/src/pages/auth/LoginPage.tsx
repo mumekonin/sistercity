@@ -8,7 +8,7 @@ export default function LoginPage() {
   const { setAuth } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // ← add this
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [keepSignedIn, setKeepSignedIn] = useState(false);
@@ -43,8 +43,8 @@ export default function LoginPage() {
             </svg>
           </div>
           <div>
-            <p className="text-white font-semibold text-lg">Sister City Portal</p>
-            <p className="text-blue-200 text-sm">Government of Ethiopia</p>
+            <p className="text-white font-semibold text-lg">Adama-Aurora SisterCity Portal</p>
+            <p className="text-blue-200 text-sm">Government of Oromia</p>
           </div>
         </div>
 

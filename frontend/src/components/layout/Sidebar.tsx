@@ -202,7 +202,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               </div>
               <div>
                 <p className="text-[#1a4a8a] dark:text-white font-bold text-sm">Sister City Portal</p>
-                <p className="text-blue-400 dark:text-slate-400 text-xs">Adama — Aurora</p>
+                <p className="text-blue-400 dark:text-slate-400 text-xs">Adama-Aurora</p>
               </div>
             </div>
 
