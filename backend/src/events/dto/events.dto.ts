@@ -1,6 +1,19 @@
-import {  IsString , IsNotEmpty, IsEnum,IsOptional,IsBoolean,IsMongoId,IsArray,IsNumber,IsDate,ValidateNested,IsIn,Min} from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsMongoId,
+  IsArray,
+  IsNumber,
+  IsDate,
+  ValidateNested,
+  IsIn,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import {City,EventType} from '../../common/enum/enum';
+import { City, EventType } from '../../common/enum/enum';
 export class AgendaItemDto {
   @IsNotEmpty()
   @IsString()
@@ -128,7 +141,7 @@ export class ConfirmMinutesDto {
   @IsIn(['upload', 'confirm'])
   action!: 'upload' | 'confirm';
 
-  @IsOptional() 
+  @IsOptional()
   @ValidateNested()
   @Type(() => MinutesDto)
   minutes?: MinutesDto;

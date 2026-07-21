@@ -111,7 +111,7 @@ export class CityProfile extends Document {
   @Prop({ required: true, type: PartnershipHistory })
   partnershipHistory!: PartnershipHistory;
   createdAt!: Date;
-  updatedAt!: Date
+  updatedAt!: Date;
 }
 
 export const CityProfileSchema = SchemaFactory.createForClass(CityProfile);

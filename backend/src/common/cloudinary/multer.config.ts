@@ -1,8 +1,8 @@
 import { memoryStorage } from 'multer';
 export const multerConfig = {
-  storage: memoryStorage(),         
+  storage: memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024,   
+    fileSize: 10 * 1024 * 1024,
   },
   fileFilter: (req: any, file: Express.Multer.File, cb: any) => {
     const allowedTypes = [
@@ -15,11 +15,14 @@ export const multerConfig = {
       'image/png',
     ];
     if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);              
+      cb(null, true);
     } else {
-      cb( new Error('Invalid file type. Only PDF, Word, Excel, and images are allowed' ),
-        false                       
-         );
+      cb(
+        new Error(
+          'Invalid file type. Only PDF, Word, Excel, and images are allowed',
+        ),
+        false,
+      );
     }
   },
 };

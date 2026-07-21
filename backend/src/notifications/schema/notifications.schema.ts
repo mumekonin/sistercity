@@ -14,7 +14,11 @@ export class Notification extends Document {
   body!: string;
   @Prop({ required: true })
   link!: string;
-  @Prop({ required: true, enum: NotificationPriority, default: NotificationPriority.NORMAL })
+  @Prop({
+    required: true,
+    enum: NotificationPriority,
+    default: NotificationPriority.NORMAL,
+  })
   priority!: NotificationPriority;
   @Prop({ default: false })
   isRead!: boolean;

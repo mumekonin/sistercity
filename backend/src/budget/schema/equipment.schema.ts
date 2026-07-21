@@ -18,7 +18,11 @@ export class Equipment extends Document {
   estimatedValue!: number;
   @Prop({ required: true })
   providedDate!: Date;
-  @Prop({ required: true, enum: EquipmentStatus, default: EquipmentStatus.AVAILABLE })
+  @Prop({
+    required: true,
+    enum: EquipmentStatus,
+    default: EquipmentStatus.AVAILABLE,
+  })
   status!: EquipmentStatus;
   @Prop({ default: null, type: String })
   damagedNote!: string | null;

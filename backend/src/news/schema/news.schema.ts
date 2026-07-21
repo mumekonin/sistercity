@@ -1,6 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { NewsCategory, NewsApprovalStatus, NewsPostedByCity } from '../../common/enum/enum';
+import {
+  NewsCategory,
+  NewsApprovalStatus,
+  NewsPostedByCity,
+} from '../../common/enum/enum';
 
 @Schema({ timestamps: true })
 export class News extends Document {
@@ -31,7 +35,11 @@ export class News extends Document {
   @Prop({ default: null, type: Types.ObjectId, ref: 'Project' })
   relatedProject!: Types.ObjectId | null;
 
-  @Prop({ required: true, enum: NewsApprovalStatus, default: NewsApprovalStatus.DRAFT })
+  @Prop({
+    required: true,
+    enum: NewsApprovalStatus,
+    default: NewsApprovalStatus.DRAFT,
+  })
   approvalStatus!: NewsApprovalStatus;
 
   @Prop({ default: false })

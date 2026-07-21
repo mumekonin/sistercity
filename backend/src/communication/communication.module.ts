@@ -1,18 +1,20 @@
-import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
-import { MessageController } from "./controller/communication.controller";
-import { MessageService } from "./service/communication.service";
-import { Message, MessageSchema } from "./schema/communication.schema";
-import { User,userSchema } from "src/users/schema/users.shema";
-import { CloudinaryService } from "src/common/cloudinary/cloudinary.service";
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { MessageController } from './controller/communication.controller';
+import { MessageService } from './service/communication.service';
+import { Message, MessageSchema } from './schema/communication.schema';
+import { User, userSchema } from 'src/users/schema/users.shema';
+import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
+import { NotificationModule } from 'src/notifications/notification.module';
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Message.name, schema: MessageSchema },
-      { name: User.name,schema: userSchema  }
+      { name: User.name, schema: userSchema },
     ]),
+    NotificationModule,
   ],
   controllers: [MessageController],
-  providers: [MessageService,CloudinaryService],
+  providers: [MessageService, CloudinaryService],
 })
-export class CommunicationModule { }
+export class CommunicationModule {}

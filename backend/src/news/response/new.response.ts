@@ -1,4 +1,8 @@
-import { NewsCategory, NewsApprovalStatus, NewsPostedByCity } from '../../common/enum/enum';
+import {
+  NewsCategory,
+  NewsApprovalStatus,
+  NewsPostedByCity,
+} from '../../common/enum/enum';
 export class NewsResponse {
   id?: string;
   title?: string;

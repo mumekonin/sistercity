@@ -25,7 +25,8 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(to: string, token: string): Promise<void> {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
     const mailOptions = {
@@ -40,8 +41,9 @@ export class EmailService {
       await this.transporter.sendMail(mailOptions);
       this.logger.log(`Password reset email sent to ${to}`);
     } catch (error) {
-      this.logger.error(`Failed to send password reset email to ${to}: ${error.message}`);
-      
+      this.logger.error(
+        `Failed to send password reset email to ${to}: ${error.message}`,
+      );
     }
   }
 }

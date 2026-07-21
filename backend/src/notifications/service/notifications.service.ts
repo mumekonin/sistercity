@@ -1,12 +1,27 @@
-import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { NotificationResponse, NotificationsWithCountResponse } from '../response/notifications.response';
+import {
+  NotificationResponse,
+  NotificationsWithCountResponse,
+} from '../response/notifications.response';
 import { Project } from 'src/projects/schema/projects.schema';
 import { Message } from 'src/communication/schema/communication.schema';
 import { Event } from 'src/events/schema/events.schema';
-import {Notification} from '../schema/notifications.schema'; 
-import { EventStatus, MessageStatus, ProjectStatus, Role } from 'src/common/enum/enum';
+import { Notification } from '../schema/notifications.schema';
+import {
+  EventStatus,
+  MessageStatus,
+  ProjectStatus,
+  Role,
+  NotificationType,
+  NotificationPriority,
+} from 'src/common/enum/enum';
 @Injectable()
 export class NotificationService {
   constructor(
@@ -17,10 +32,12 @@ export class NotificationService {
     @InjectModel(Message.name)
     private readonly messageModel: Model<Message>,
     @InjectModel(Event.name)
-    private readonly eventModel: Model<Event>
-  ) { }
+    private readonly eventModel: Model<Event>,
+  ) {}
 
-  async getNotifications(currentUser: any): Promise<NotificationsWithCountResponse> {
+  async getNotifications(
+    currentUser: any,
+  ): Promise<NotificationsWithCountResponse> {
     const notifications = await this.notificationModel
       .find({ recipient: new Types.ObjectId(currentUser.userId) })
       .sort({ createdAt: -1 })
@@ -33,6 +50,52 @@ export class NotificationService {
       unreadCount,
     };
   }
+  /** Create a single notification for one recipient. Used by other modules. */
+  async create(payload: {
+    recipient: string | Types.ObjectId;
+    type: NotificationType;
+    title: string;
+    body: string;
+    link: string;
+    priority?: NotificationPriority;
+  }): Promise<void> {
+    await this.notificationModel.create({
+      recipient: new Types.ObjectId(payload.recipient),
+      type: payload.type,
+      title: payload.title,
+      body: payload.body,
+      link: payload.link,
+      priority: payload.priority ?? NotificationPriority.NORMAL,
+      isRead: false,
+      readAt: null,
+    });
+  }
+
+  /** Create the same notification for many recipients at once. */
+  async createMany(
+    recipientIds: (string | Types.ObjectId)[],
+    payload: {
+      type: NotificationType;
+      title: string;
+      body: string;
+      link: string;
+      priority?: NotificationPriority;
+    },
+  ): Promise<void> {
+    if (!recipientIds.length) return;
+    const docs = recipientIds.map((recipient) => ({
+      recipient: new Types.ObjectId(recipient),
+      type: payload.type,
+      title: payload.title,
+      body: payload.body,
+      link: payload.link,
+      priority: payload.priority ?? NotificationPriority.NORMAL,
+      isRead: false,
+      readAt: null,
+    }));
+    await this.notificationModel.insertMany(docs);
+  }
+
   private toNotificationResponse(notification: any): NotificationResponse {
     return {
       id: notification._id.toString(),
@@ -47,19 +110,29 @@ export class NotificationService {
       createdAt: notification.createdAt,
     };
   }
-  async markAsRead(id: string, currentUser: any): Promise<NotificationResponse> {
+  async markAsRead(
+    id: string,
+    currentUser: any,
+  ): Promise<NotificationResponse> {
     const notification = await this.notificationModel.findById(id).lean();
     if (!notification) throw new NotFoundException('Notification not found');
     // only recipient can mark as read
     if ((notification as any).recipient.toString() !== currentUser.userId) {
-      throw new ForbiddenException('You can only mark your own notifications as read');
+      throw new ForbiddenException(
+        'You can only mark your own notifications as read',
+      );
     }
     // already read — return without error (idempotent)
     if ((notification as any).isRead) {
       return this.toNotificationResponse(notification);
     }
     const updated = await this.notificationModel
-      .findByIdAndUpdate(id, { isRead: true, readAt: new Date() }, { new: true }).lean();
+      .findByIdAndUpdate(
+        id,
+        { isRead: true, readAt: new Date() },
+        { new: true },
+      )
+      .lean();
     return this.toNotificationResponse(updated);
   }
   async markAllAsRead(currentUser: any): Promise<{ message: string }> {

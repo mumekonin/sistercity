@@ -1,4 +1,9 @@
-import {City,ExpenditureCategory,ExpenditureStatus,EquipmentStatus} from '../../common/enum/enum';
+import {
+  City,
+  ExpenditureCategory,
+  ExpenditureStatus,
+  EquipmentStatus,
+} from '../../common/enum/enum';
 export class ExpenditureResponse {
   id!: string;
   city!: City;
@@ -7,14 +12,14 @@ export class ExpenditureResponse {
   amount!: number;
   date!: Date;
   receiptUrl!: string;
-  recordedBy!: string;            
+  recordedBy!: string;
   status!: ExpenditureStatus;
-  approvedBy!: string | null;     
+  approvedBy!: string | null;
   rejectionReason!: string | null;
   approvedAt!: Date | null;
 }
 export class BudgetResponse {
-  id!: string | null;             
+  id!: string | null;
   project!: string;
   plannedAdama!: number;
   plannedAurora!: number;
@@ -26,21 +31,21 @@ export class BudgetResponse {
   remainingAurora!: number;
   remainingTotal!: number;
   expenditures!: ExpenditureResponse[];
-  createdAt!: Date | null;       
-  updatedAt!: Date | null;        
+  createdAt!: Date | null;
+  updatedAt!: Date | null;
 }
 export class BudgetSummaryResponse {
   projectId!: string;
-  projectTitle!: string;          
+  projectTitle!: string;
   plannedTotal!: number;
   spentTotal!: number;
   remainingTotal!: number;
-  percentageUsed!: number;        
-  isOverBudget!: boolean;         
+  percentageUsed!: number;
+  isOverBudget!: boolean;
 }
 export class EquipmentResponse {
   id!: string;
-  project!: string;              
+  project!: string;
   itemName!: string;
   description!: string;
   providedBy!: City;
@@ -50,7 +55,7 @@ export class EquipmentResponse {
   status!: EquipmentStatus;
   damagedNote!: string | null;
   returnedDate!: Date | null;
-  recordedBy!: string;            
+  recordedBy!: string;
   createdAt!: Date;
   updatedAt!: Date;
 }

@@ -1,9 +1,29 @@
-import { IsString,IsNotEmpty,IsEnum,IsOptional,IsNumber,IsDate,IsMongoId,IsArray,ValidateNested,Min,IsIn,} from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsDate,
+  IsMongoId,
+  IsArray,
+  ValidateNested,
+  Min,
+  IsIn,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import {Priority,MilestoneStatus,TaskStatus,TaskPriority,IssueStatus,IssueSeverity,Responsible,ProjectStatus,} from '../../common/enum/enum';
+import {
+  Priority,
+  MilestoneStatus,
+  TaskStatus,
+  TaskPriority,
+  IssueStatus,
+  IssueSeverity,
+  Responsible,
+  ProjectStatus,
+} from '../../common/enum/enum';
 
 export class CreateProjectDto {
-
   @IsString()
   @IsNotEmpty()
   title!: string;
@@ -22,7 +42,7 @@ export class CreateProjectDto {
 
   @IsEnum(Responsible)
   @IsNotEmpty()
-  beneficiary!: Responsible;   
+  beneficiary!: Responsible;
 }
 
 export class ApproveProjectDto {
@@ -40,7 +60,7 @@ export class RejectProjectDto {
 
   @IsString()
   @IsNotEmpty()
-  rejectionReason!: string;   
+  rejectionReason!: string;
 }
 
 export class AssignProjectDto {
@@ -51,11 +71,11 @@ export class AssignProjectDto {
 
   @IsString()
   @IsNotEmpty()
-  department!: string;        
+  department!: string;
 
   @IsMongoId()
   @IsNotEmpty()
-  focalPerson!: string;     
+  focalPerson!: string;
 }
 
 export class PlanProjectDto {
@@ -66,7 +86,7 @@ export class PlanProjectDto {
 
   @IsNumber()
   @Min(0)
-  budget!: number;          
+  budget!: number;
 
   @IsDate()
   @Type(() => Date)
@@ -85,14 +105,20 @@ export class UpdateProjectStatusDto {
 
   @IsEnum(ProjectStatus)
   @IsNotEmpty()
-  status!: ProjectStatus;     
+  status!: ProjectStatus;
 }
 
 export class UpdateProjectDto {
   @IsString()
   @IsNotEmpty()
-  @IsIn(['approve', 'reject', 'assign', 'plan', 'update-status','complete'])
-  action!: 'approve' | 'reject' | 'assign' | 'plan' | 'update-status'|'complete';
+  @IsIn(['approve', 'reject', 'assign', 'plan', 'update-status', 'complete'])
+  action!:
+    | 'approve'
+    | 'reject'
+    | 'assign'
+    | 'plan'
+    | 'update-status'
+    | 'complete';
 
   @IsOptional()
   @IsString()
@@ -141,7 +167,7 @@ export class CreateMilestoneDto {
 
   @IsEnum(Responsible)
   @IsNotEmpty()
-  responsible!: Responsible;  
+  responsible!: Responsible;
 }
 
 export class UpdateMilestoneDto {
@@ -174,14 +200,12 @@ export class CreateTaskDto {
   @IsDate()
   @Type(() => Date)
   dueDate!: Date;
-
-  
 }
 
 export class UpdateTaskDto {
   @IsOptional()
   @IsEnum(TaskStatus)
-  status?: TaskStatus;      
+  status?: TaskStatus;
 
   @IsOptional()
   @IsEnum(TaskPriority)
@@ -200,16 +224,16 @@ export class CreateIssueDto {
 
   @IsEnum(IssueSeverity)
   @IsNotEmpty()
-  severity!: IssueSeverity;   
+  severity!: IssueSeverity;
 
   @IsEnum(Responsible)
   @IsNotEmpty()
-  affectedCity!: Responsible; 
+  affectedCity!: Responsible;
 }
 export class UpdateIssueDto {
   @IsEnum(IssueStatus)
   @IsNotEmpty()
-  status!: IssueStatus;   
+  status!: IssueStatus;
 
   @IsOptional()
   @IsString()

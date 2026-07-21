@@ -1,6 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import {City,MilestoneStatus,Responsible, TaskPriority, TaskStatus, IssueSeverity, IssueStatus,  Priority,  ProjectStatus,} from '../../common/enum/enum';
+import {
+  City,
+  MilestoneStatus,
+  Responsible,
+  TaskPriority,
+  TaskStatus,
+  IssueSeverity,
+  IssueStatus,
+  Priority,
+  ProjectStatus,
+} from '../../common/enum/enum';
 
 @Schema({ _id: true })
 class Milestone {
@@ -16,7 +26,11 @@ class Milestone {
   @Prop({ required: true, enum: Responsible })
   responsible!: Responsible;
 
-  @Prop({ required: true, enum: MilestoneStatus, default: MilestoneStatus.NOT_STARTED })
+  @Prop({
+    required: true,
+    enum: MilestoneStatus,
+    default: MilestoneStatus.NOT_STARTED,
+  })
   status!: MilestoneStatus;
 
   @Prop({ default: null, type: Date })
@@ -25,7 +39,7 @@ class Milestone {
   @Prop({ default: null, type: String })
   delayReason!: string | null;
 }
-const MilestoneSchema = SchemaFactory.createForClass(Milestone); 
+const MilestoneSchema = SchemaFactory.createForClass(Milestone);
 
 @Schema({ _id: true })
 class Task {
@@ -53,7 +67,7 @@ class Task {
   @Prop({ default: null, type: Date })
   completedAt!: Date | null;
 }
-const TaskSchema = SchemaFactory.createForClass(Task); 
+const TaskSchema = SchemaFactory.createForClass(Task);
 
 @Schema({ _id: true })
 class Issue {
@@ -95,7 +109,6 @@ const CityAssignmentSchema = SchemaFactory.createForClass(CityAssignment);
 
 @Schema({ timestamps: true })
 export class Project extends Document {
-
   @Prop({ required: true })
   title!: string;
 
@@ -114,7 +127,11 @@ export class Project extends Document {
   @Prop({ required: true, enum: Priority })
   priority!: Priority;
 
-  @Prop({ required: true, enum: ProjectStatus, default: ProjectStatus.PROPOSED })
+  @Prop({
+    required: true,
+    enum: ProjectStatus,
+    default: ProjectStatus.PROPOSED,
+  })
   status!: ProjectStatus;
 
   @Prop({ default: null, type: String })
@@ -123,16 +140,16 @@ export class Project extends Document {
   @Prop({ required: true, enum: Responsible })
   beneficiary!: Responsible;
 
-  @Prop({ default: null, type: CityAssignmentSchema })  
+  @Prop({ default: null, type: CityAssignmentSchema })
   adama!: CityAssignment | null;
 
-  @Prop({ default: null, type: CityAssignmentSchema })  
-  aurora!: CityAssignment | null;                       
+  @Prop({ default: null, type: CityAssignmentSchema })
+  aurora!: CityAssignment | null;
   @Prop({ default: 0 })
   budgetAdama!: number;
 
   @Prop({ default: 0 })
-  budgetAurora!: number;                                
+  budgetAurora!: number;
 
   @Prop({ default: 0 })
   budgetTotal!: number;
@@ -152,24 +169,24 @@ export class Project extends Document {
   @Prop({ default: 0 })
   progressPercent!: number;
 
-  @Prop({ type: [MilestoneSchema], default: [] })       
+  @Prop({ type: [MilestoneSchema], default: [] })
   milestones!: Milestone[];
 
-  @Prop({ type: [TaskSchema], default: [] })           
+  @Prop({ type: [TaskSchema], default: [] })
   tasks!: Task[];
 
-  @Prop({ type: [IssueSchema], default: [] })          
+  @Prop({ type: [IssueSchema], default: [] })
   issues!: Issue[];
 
   @Prop({ type: [String], default: [] })
   completedBy!: string[];
- 
-   @Prop({ default: false })
+
+  @Prop({ default: false })
   adamaPlanned!: boolean;
 
   @Prop({ default: false })
   auroraPlanned!: boolean;
-  
+
   createdAt!: Date;
   updatedAt!: Date;
 }

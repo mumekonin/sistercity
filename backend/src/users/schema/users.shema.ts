@@ -1,10 +1,9 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
-import { Role, City, Department } from "../../common/enum/enum";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
+import { Role, City, Department } from '../../common/enum/enum';
 
 @Schema({ timestamps: true })
 export class User extends Document {
-
   @Prop({ required: true })
   fullName!: string;
 

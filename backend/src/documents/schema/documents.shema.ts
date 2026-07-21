@@ -1,6 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { AccessLevel, City, DocumentApprovalStatus, DocumentCategory } from '../../common/enum/enum';
+import {
+  AccessLevel,
+  City,
+  DocumentApprovalStatus,
+  DocumentCategory,
+} from '../../common/enum/enum';
 @Schema({ _id: false })
 class PreviousVersion {
   @Prop({ required: true })
@@ -50,12 +55,16 @@ export class DocumentFile extends Document {
   @Prop({ required: true })
   fileType!: string;
   @Prop({ required: true })
-  fileSize!:number;
+  fileSize!: number;
   @Prop({ default: 1 })
   versionNumber!: number;
   @Prop({ type: [PreviousVersionSchema], default: [] })
   previousVersions!: PreviousVersion[];
-  @Prop({required: true,enum: DocumentApprovalStatus,default: DocumentApprovalStatus.DRAFT})
+  @Prop({
+    required: true,
+    enum: DocumentApprovalStatus,
+    default: DocumentApprovalStatus.DRAFT,
+  })
   approvalStatus!: DocumentApprovalStatus;
   @Prop({ default: null, type: Types.ObjectId, ref: 'User' })
   approvedBy!: Types.ObjectId | null;

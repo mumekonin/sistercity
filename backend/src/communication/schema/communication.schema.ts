@@ -1,6 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { City, MessageType, MessagePriority, MessageStatus } from '../../common/enum/enum';
+import {
+  City,
+  MessageType,
+  MessagePriority,
+  MessageStatus,
+} from '../../common/enum/enum';
 @Schema({ _id: false })
 class MessageFrom {
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
@@ -25,7 +30,12 @@ class MessageTo {
 
 @Schema({ _id: false })
 class Attachment {
-  @Prop({ required: false, default: null, type: Types.ObjectId, ref: 'Document' })
+  @Prop({
+    required: false,
+    default: null,
+    type: Types.ObjectId,
+    ref: 'Document',
+  })
   documentId!: Types.ObjectId | null;
   @Prop({ required: true })
   fileName!: string;
@@ -77,9 +87,9 @@ export class Message extends Document {
   @Prop({ default: false })
   isEscalated!: boolean;
 
-  @Prop({ default: false })  
+  @Prop({ default: false })
   isArchived!: boolean;
-  
+
   createdAt!: Date;
   updatedAt!: Date;
 }

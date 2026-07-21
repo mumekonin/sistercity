@@ -1,6 +1,14 @@
 // dto/create-user.dto.ts
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, IsBoolean } from "class-validator";
-import { Role, City, Department } from "../../common/enum/enum";
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+  IsBoolean,
+} from 'class-validator';
+import { Role, City, Department } from '../../common/enum/enum';
 
 export class CreateUserDto {
   @IsNotEmpty()

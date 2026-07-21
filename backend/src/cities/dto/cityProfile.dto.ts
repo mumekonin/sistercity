@@ -1,5 +1,16 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsDate, IsEmail, IsEnum, IsNotEmpty, IsNumber,IsOptional, IsString, IsUrl, ValidateNested,} from 'class-validator';
+import {
+  IsArray,
+  IsDate,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUrl,
+  ValidateNested,
+} from 'class-validator';
 import { City } from '../../common/enum/enum';
 export class BasicInfoDto {
   @IsNotEmpty()
@@ -161,7 +172,6 @@ export class UpdateBasicInfoDto {
   @IsOptional()
   @IsUrl()
   officialWebsite?: string;
-
 }
 
 export class UpdatePopulationDto {

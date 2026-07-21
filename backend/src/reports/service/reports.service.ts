@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Report } from '../schema/reports.schema';
@@ -7,8 +12,19 @@ import { Message } from '../../communication/schema/communication.schema';
 import { Budget } from '../../budget/schema/budget.schema';
 import { DocumentFile } from '../../documents/schema/documents.shema';
 import { CreateReportDto } from '../dto/reports.dto';
-import { ReportResponse, ReportListResponse } from '../response/reports.response';
-import { Role, City, ReportType, ReportCity, ProjectStatus, MessageStatus, DocumentApprovalStatus } from '../../common/enum/enum';
+import {
+  ReportResponse,
+  ReportListResponse,
+} from '../response/reports.response';
+import {
+  Role,
+  City,
+  ReportType,
+  ReportCity,
+  ProjectStatus,
+  MessageStatus,
+  DocumentApprovalStatus,
+} from '../../common/enum/enum';
 
 @Injectable()
 export class ReportsService {
@@ -23,7 +39,7 @@ export class ReportsService {
     private readonly budgetModel: Model<Budget>,
     @InjectModel(DocumentFile.name)
     private readonly documentModel: Model<DocumentFile>,
-  ) { }
+  ) {}
 
   // Get All Reports
   async getAllReports(currentUser: any): Promise<ReportListResponse[]> {
@@ -222,14 +238,30 @@ export class ReportsService {
 
     projects.forEach((p: any) => {
       switch (p.status) {
-        case ProjectStatus.PROPOSED: byStatus.proposed++; break;
-        case ProjectStatus.APPROVED: byStatus.approved++; break;
-        case ProjectStatus.PLANNED: byStatus.planned++; break;
-        case ProjectStatus.IN_PROGRESS: byStatus.inProgress++; break;
-        case ProjectStatus.ON_HOLD: byStatus.onHold++; break;
-        case ProjectStatus.DELAYED: byStatus.delayed++; break;
-        case ProjectStatus.COMPLETED: byStatus.completed++; break;
-        case ProjectStatus.REJECTED: byStatus.rejected++; break;
+        case ProjectStatus.PROPOSED:
+          byStatus.proposed++;
+          break;
+        case ProjectStatus.APPROVED:
+          byStatus.approved++;
+          break;
+        case ProjectStatus.PLANNED:
+          byStatus.planned++;
+          break;
+        case ProjectStatus.IN_PROGRESS:
+          byStatus.inProgress++;
+          break;
+        case ProjectStatus.ON_HOLD:
+          byStatus.onHold++;
+          break;
+        case ProjectStatus.DELAYED:
+          byStatus.delayed++;
+          break;
+        case ProjectStatus.COMPLETED:
+          byStatus.completed++;
+          break;
+        case ProjectStatus.REJECTED:
+          byStatus.rejected++;
+          break;
       }
     });
 
@@ -319,7 +351,8 @@ export class ReportsService {
         const diffDays = diffMs / (1000 * 60 * 60 * 24);
         return sum + diffDays;
       }, 0);
-      avgResponseDays = Math.round((totalDays / repliedMessages.length) * 10) / 10;
+      avgResponseDays =
+        Math.round((totalDays / repliedMessages.length) * 10) / 10;
     }
 
     const byType: Record<string, number> = {};
@@ -390,9 +423,7 @@ export class ReportsService {
       totalSpent,
       remaining: totalPlanned - totalSpent,
       percentageUsed:
-        totalPlanned === 0
-          ? 0
-          : Math.round((totalSpent / totalPlanned) * 100),
+        totalPlanned === 0 ? 0 : Math.round((totalSpent / totalPlanned) * 100),
       isOverBudget: totalSpent > totalPlanned,
       byProject,
     };
@@ -415,9 +446,15 @@ export class ReportsService {
     const byStatus = { draft: 0, approved: 0, rejected: 0 };
     documents.forEach((d: any) => {
       switch (d.approvalStatus) {
-        case DocumentApprovalStatus.DRAFT: byStatus.draft++; break;
-        case DocumentApprovalStatus.APPROVED: byStatus.approved++; break;
-        case DocumentApprovalStatus.REJECTED: byStatus.rejected++; break;
+        case DocumentApprovalStatus.DRAFT:
+          byStatus.draft++;
+          break;
+        case DocumentApprovalStatus.APPROVED:
+          byStatus.approved++;
+          break;
+        case DocumentApprovalStatus.REJECTED:
+          byStatus.rejected++;
+          break;
       }
     });
 
@@ -446,10 +483,14 @@ export class ReportsService {
     doc.pipe(res);
 
     doc.fontSize(20).text('Sister City Portal', { align: 'center' });
-    doc.fontSize(14).text(`Report Type: ${report.reportType}`, { align: 'center' });
+    doc
+      .fontSize(14)
+      .text(`Report Type: ${report.reportType}`, { align: 'center' });
     doc.moveDown();
     doc.fontSize(12).text(`City: ${report.city}`);
-    doc.text(`Period: ${new Date(report.dateFrom).toDateString()} - ${new Date(report.dateTo).toDateString()}`);
+    doc.text(
+      `Period: ${new Date(report.dateFrom).toDateString()} - ${new Date(report.dateTo).toDateString()}`,
+    );
     doc.text(`Generated At: ${new Date(report.generatedAt).toDateString()}`);
     doc.moveDown();
     doc.fontSize(14).text('Report Data:');
@@ -486,7 +527,11 @@ export class ReportsService {
 
     const flattenData = (obj: any, prefix = '') => {
       Object.entries(obj).forEach(([key, value]) => {
-        if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+        if (
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          value !== null
+        ) {
           flattenData(value, `${prefix}${key}.`);
         } else if (Array.isArray(value)) {
           sheet.addRow([`${prefix}${key}`, JSON.stringify(value)]);

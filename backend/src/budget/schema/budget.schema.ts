@@ -1,6 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { City, ExpenditureStatus, ExpenditureCategory } from '../../common/enum/enum';
+import {
+  City,
+  ExpenditureStatus,
+  ExpenditureCategory,
+} from '../../common/enum/enum';
 @Schema({ _id: true })
 class Expenditure {
   @Prop({ required: true, enum: City })
@@ -17,7 +21,11 @@ class Expenditure {
   receiptUrl!: string;
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   recordedBy!: Types.ObjectId;
-  @Prop({ required: true, enum: ExpenditureStatus, default: ExpenditureStatus.PENDING })
+  @Prop({
+    required: true,
+    enum: ExpenditureStatus,
+    default: ExpenditureStatus.PENDING,
+  })
   status!: ExpenditureStatus;
   @Prop({ default: null, type: Types.ObjectId, ref: 'User' })
   approvedBy!: Types.ObjectId | null;
@@ -30,7 +38,6 @@ const ExpenditureSchema = SchemaFactory.createForClass(Expenditure);
 
 @Schema({ timestamps: true })
 export class Budget extends Document {
-
   @Prop({ required: true, type: Types.ObjectId, ref: 'Project', unique: true })
   project!: Types.ObjectId;
   @Prop({ default: 0 })

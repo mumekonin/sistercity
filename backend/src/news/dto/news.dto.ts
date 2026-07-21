@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsBoolean, IsMongoId, IsArray, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsMongoId,
+  IsArray,
+  IsIn,
+} from 'class-validator';
 import { NewsCategory } from '../../common/enum/enum';
 import { Transform } from 'class-transformer';
 export class CreateNewsDto {

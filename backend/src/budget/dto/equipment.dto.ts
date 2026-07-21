@@ -1,9 +1,16 @@
-import { IsString, IsNotEmpty, IsEnum, IsNumber, IsDate, IsOptional, Min, } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsNumber,
+  IsDate,
+  IsOptional,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { EquipmentStatus } from '../../common/enum/enum';
 
 export class CreateEquipmentDto {
-
   @IsString()
   @IsNotEmpty()
   itemName!: string;
@@ -32,7 +39,7 @@ export class UpdateEquipmentDto {
   @IsOptional()
   @IsString()
   damagedNote?: string;
-  
+
   @IsOptional()
   @IsDate()
   @Type(() => Date)

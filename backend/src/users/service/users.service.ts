@@ -1,12 +1,23 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException, UnauthorizedException } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { User } from "../schema/users.shema";
-import { Model } from "mongoose";
-import { CreateUserDto, LoginUserDto, UpdateUserDto, ChangePasswordDto } from "../dto/users.dto";
-import * as bcrypt from "bcrypt";
-import { UserResponse } from "../response/users.response";
-import { commonUtils } from "../../common/utils/utils";
-import { Role } from "src/common/enum/enum";
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { User } from '../schema/users.shema';
+import { Model } from 'mongoose';
+import {
+  CreateUserDto,
+  LoginUserDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+} from '../dto/users.dto';
+import * as bcrypt from 'bcrypt';
+import { UserResponse } from '../response/users.response';
+import { commonUtils } from '../../common/utils/utils';
+import { Role } from 'src/common/enum/enum';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import { EmailService } from '../../email/email.service';
@@ -17,27 +28,39 @@ export class UserService {
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
     private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   async createUser(createUserDto: CreateUserDto, currentUser: any) {
-
     if (currentUser.role === Role.CITY_ADMIN) {
-      if (createUserDto.role === Role.CITY_ADMIN || createUserDto.role === Role.SUPER_ADMIN) {
-        throw new ForbiddenException('City Admin can only create Department Officers');
+      if (
+        createUserDto.role === Role.CITY_ADMIN ||
+        createUserDto.role === Role.SUPER_ADMIN
+      ) {
+        throw new ForbiddenException(
+          'City Admin can only create Department Officers',
+        );
       }
       if (createUserDto.city !== currentUser.city) {
-        throw new ForbiddenException('You can only create users for your own city');
+        throw new ForbiddenException(
+          'You can only create users for your own city',
+        );
       }
     }
     if (currentUser.role === Role.SUPER_ADMIN) {
       if (createUserDto.role === Role.SUPER_ADMIN) {
-        throw new ForbiddenException('Super Admin cannot create another Super Admin');
+        throw new ForbiddenException(
+          'Super Admin cannot create another Super Admin',
+        );
       }
     }
     if (createUserDto.role === Role.DEPT_OFFICER && !createUserDto.department) {
-      throw new BadRequestException('Department is required for Department Officer');
+      throw new BadRequestException(
+        'Department is required for Department Officer',
+      );
     }
-    const existingUser = await this.userModel.findOne({ email: createUserDto.email });
+    const existingUser = await this.userModel.findOne({
+      email: createUserDto.email,
+    });
     if (existingUser) {
       throw new BadRequestException('A user already exists with this email');
     }
@@ -73,32 +96,43 @@ export class UserService {
       throw new NotFoundException('No account found with this email');
     }
     if (!user.isActive) {
-      throw new UnauthorizedException('Your account has been deactivated. Contact your administrator.');
+      throw new UnauthorizedException(
+        'Your account has been deactivated. Contact your administrator.',
+      );
     }
-    // Check if account is currently locked 
+    // Check if account is currently locked
     const now = new Date();
     if (user.lockUntil && user.lockUntil > now) {
       const msLeft = user.lockUntil.getTime() - now.getTime();
       const minutesLeft = Math.ceil(msLeft / 60000);
-      throw new UnauthorizedException(`Your account is locked. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`);
+      throw new UnauthorizedException(
+        `Your account is locked. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`,
+      );
     }
-    // If lock has expired, reset automatically 
+    // If lock has expired, reset automatically
     if (user.lockUntil && user.lockUntil <= now) {
       user.lockUntil = null;
       user.failedLoginAttempts = 0;
     }
-    //Check password 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    //Check password
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
     if (!isPasswordValid) {
       user.failedLoginAttempts += 1;
       if (user.failedLoginAttempts >= 5) {
         user.lockUntil = new Date(now.getTime() + 15 * 60 * 1000);
         await user.save();
-        throw new UnauthorizedException('Too many failed attempts. Your account is locked for 15 minutes.');
+        throw new UnauthorizedException(
+          'Too many failed attempts. Your account is locked for 15 minutes.',
+        );
       }
       await user.save();
       const attemptsLeft = 5 - user.failedLoginAttempts;
-      throw new BadRequestException(`Invalid password. ${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining before account is locked.`);
+      throw new BadRequestException(
+        `Invalid password. ${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining before account is locked.`,
+      );
     }
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
@@ -113,7 +147,9 @@ export class UserService {
       department: user.department,
     };
     const token = commonUtils.generateJwtToken(jwtData);
-    const refreshToken = commonUtils.generateRefreshToken({ userId: user._id.toString() });
+    const refreshToken = commonUtils.generateRefreshToken({
+      userId: user._id.toString(),
+    });
     // Save refresh token to database
     user.refreshToken = refreshToken;
     await user.save();
@@ -128,7 +164,7 @@ export class UserService {
         city: user.city,
         department: user.department,
         jobTitle: user.jobTitle,
-      }
+      },
     };
   }
   //logout user
@@ -145,7 +181,10 @@ export class UserService {
   //GET all users
   async getAllUsers(currentUser: any): Promise<UserResponse[]> {
     let users;
-    const excludeFilter = { _id: { $ne: currentUser.userId }, role: { $ne: Role.SUPER_ADMIN } };
+    const excludeFilter = {
+      _id: { $ne: currentUser.userId },
+      role: { $ne: Role.SUPER_ADMIN },
+    };
     if (currentUser.role === Role.SUPER_ADMIN) {
       users = await this.userModel
         .find({ _id: { $ne: currentUser.userId } })
@@ -179,12 +218,21 @@ export class UserService {
     return usersResponse;
   }
   // service
-  async updateUser(id: string, updateUserDto: UpdateUserDto, currentUser: any): Promise<UserResponse> {
+  async updateUser(
+    id: string,
+    updateUserDto: UpdateUserDto,
+    currentUser: any,
+  ): Promise<UserResponse> {
     const targetUser = await this.userModel.findById(id);
     if (!targetUser) throw new NotFoundException('User not found');
 
-    if (currentUser.role === Role.CITY_ADMIN && targetUser.city !== currentUser.city) {
-      throw new ForbiddenException('You can only update users in your own city');
+    if (
+      currentUser.role === Role.CITY_ADMIN &&
+      targetUser.city !== currentUser.city
+    ) {
+      throw new ForbiddenException(
+        'You can only update users in your own city',
+      );
     }
 
     if (updateUserDto.role && currentUser.role !== Role.SUPER_ADMIN) {
@@ -196,7 +244,6 @@ export class UserService {
     }
     if (updateUserDto.email) {
       targetUser.email = updateUserDto.email;
-
     }
     if (updateUserDto.jobTitle) {
       targetUser.jobTitle = updateUserDto.jobTitle;
@@ -227,108 +274,132 @@ export class UserService {
       department: updatedUser.department,
       jobTitle: updatedUser.jobTitle,
       phone: updatedUser.phone,
-      isActive: updatedUser.isActive
+      isActive: updatedUser.isActive,
     };
 
     return userResponse;
   }
-  async changePassword(currentUserId: string, changePasswordDto: ChangePasswordDto) {
+  async changePassword(
+    currentUserId: string,
+    changePasswordDto: ChangePasswordDto,
+  ) {
     const user = await this.userModel.findById(currentUserId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    const isCurrentPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
+    const isCurrentPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
     if (!isCurrentPasswordValid) {
-      throw new BadRequestException('Current password is incorrect. Please enter your login password.');
+      throw new BadRequestException(
+        'Current password is incorrect. Please enter your login password.',
+      );
     }
-    const isSamePassword = await bcrypt.compare(changePasswordDto.newPassword, user.password);
+    const isSamePassword = await bcrypt.compare(
+      changePasswordDto.newPassword,
+      user.password,
+    );
     if (isSamePassword) {
-      throw new BadRequestException('New password cannot be the same as your current password');
+      throw new BadRequestException(
+        'New password cannot be the same as your current password',
+      );
     }
-    if (changePasswordDto.newPassword !== changePasswordDto.confirmNewPassword) {
-      throw new BadRequestException('New password and confirm password do not match');
+    if (
+      changePasswordDto.newPassword !== changePasswordDto.confirmNewPassword
+    ) {
+      throw new BadRequestException(
+        'New password and confirm password do not match',
+      );
     }
     user.password = await bcrypt.hash(changePasswordDto.newPassword, 10);
     user.refreshToken = null;
     await user.save();
     return {
-      message: 'Password changed successfully. Please log in again.'
+      message: 'Password changed successfully. Please log in again.',
     };
   }
   async refreshTokens(refreshToken: string) {
-  try {
-    const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET!;
-    const payload = jwt.verify(refreshToken, secret) as { userId: string };
-    const user = await this.userModel.findById(payload.userId);
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('Access denied. User is inactive or does not exist.');
+    try {
+      const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET!;
+      const payload = jwt.verify(refreshToken, secret) as { userId: string };
+      const user = await this.userModel.findById(payload.userId);
+      if (!user || !user.isActive) {
+        throw new UnauthorizedException(
+          'Access denied. User is inactive or does not exist.',
+        );
+      }
+      if (user.refreshToken !== refreshToken) {
+        throw new UnauthorizedException('Invalid or expired refresh token.');
+      }
+      const newJwtPayload = {
+        userId: user._id.toString(),
+        role: user.role,
+        email: user.email,
+        city: user.city,
+        department: user.department,
+      };
+      const newAccessToken = commonUtils.generateJwtToken(newJwtPayload);
+      const newRefreshToken = commonUtils.generateRefreshToken({
+        userId: user._id.toString(),
+      });
+      user.refreshToken = newRefreshToken;
+      await user.save();
+      return {
+        token: newAccessToken,
+        refreshToken: newRefreshToken,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired session.');
     }
-    if (user.refreshToken !== refreshToken) {
-      throw new UnauthorizedException('Invalid or expired refresh token.');
+  }
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.userModel.findOne({ email });
+    if (!user) {
+      // don't reveal if email exists
+      return { message: 'If this email exists, a reset link has been sent' };
     }
-    const newJwtPayload = {
-      userId: user._id.toString(),
-      role: user.role,
-      email: user.email,
-      city: user.city,
-      department: user.department,
-    };
-    const newAccessToken = commonUtils.generateJwtToken(newJwtPayload);
-    const newRefreshToken = commonUtils.generateRefreshToken({ userId: user._id.toString() });
-    user.refreshToken = newRefreshToken;
+
+    // generate plain token to send to user
+    const plainToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(plainToken)
+      .digest('hex');
+    const expiry = new Date(Date.now() + 3600000);
+
+    // save hashed token to user
+    user.resetToken = hashedToken;
+    user.resetTokenExpiry = expiry;
     await user.save();
+
+    // send email with reset link containing the plain token
+    await this.emailService.sendPasswordResetEmail(user.email, plainToken);
+
     return {
-      token: newAccessToken,
-      refreshToken: newRefreshToken,
+      message: 'If this email exists, a reset link has been sent',
     };
-  } catch (error) {
-    throw new UnauthorizedException('Invalid or expired session.');
-  }
-}
-async forgotPassword(email: string): Promise<{ message: string }> {
-  const user = await this.userModel.findOne({ email });
-  if (!user) {
-    // don't reveal if email exists
-    return { message: 'If this email exists, a reset link has been sent' };
   }
 
-  // generate plain token to send to user
-  const plainToken = crypto.randomBytes(32).toString('hex');
-  const hashedToken = crypto.createHash('sha256').update(plainToken).digest('hex');
-  const expiry = new Date(Date.now() + 3600000); 
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await this.userModel.findOne({
+      resetToken: hashedToken,
+      resetTokenExpiry: { $gt: new Date() },
+    });
 
-  // save hashed token to user
-  user.resetToken = hashedToken;
-  user.resetTokenExpiry = expiry;
-  await user.save();
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
 
-  // send email with reset link containing the plain token
-  await this.emailService.sendPasswordResetEmail(user.email, plainToken);
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
 
-  return {
-    message: 'If this email exists, a reset link has been sent',
-  };
-}
-
-async resetPassword(
-  token: string,
-  newPassword: string,
-): Promise<{ message: string }> {
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-  const user = await this.userModel.findOne({
-    resetToken: hashedToken,
-    resetTokenExpiry: { $gt: new Date() },
-  });
-
-  if (!user) {
-    throw new BadRequestException('Invalid or expired reset token');
+    return { message: 'Password reset successfully' };
   }
-
-  user.password = await bcrypt.hash(newPassword, 10);
-  user.resetToken = null;
-  user.resetTokenExpiry = null;
-  await user.save();
-
-  return { message: 'Password reset successfully' };
-}
 }

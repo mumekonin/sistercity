@@ -4,9 +4,12 @@ import { AuthGuard } from '@nestjs/passport';
 
 @Controller('/search')
 export class SearchController {
-  constructor(private readonly searchService: SearchService) { }
+  constructor(private readonly searchService: SearchService) {}
   @Get('/')
-  async search(@Query('q') query: string, @Query('type') type?: string, @Req() req?: any,
+  async search(
+    @Query('q') query: string,
+    @Query('type') type?: string,
+    @Req() req?: any,
   ) {
     return this.searchService.search(query, type, req?.user ?? null);
   }

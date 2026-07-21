@@ -1,20 +1,40 @@
-import { Controller, Post, Body, Req, UseGuards, Get, Param, Patch, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  UseGuards,
+  Get,
+  Param,
+  Patch,
+  Delete,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DbRolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorator/role.decorator';
 import { Role } from '../../common/enum/enum';
 import { ProjectsService } from '../service/projects.service';
-import { CreateProjectDto, UpdateProjectDto, CreateMilestoneDto, UpdateMilestoneDto, CreateTaskDto, UpdateTaskDto, CreateIssueDto, UpdateIssueDto } from '../dto/projects.dto';
+import {
+  CreateProjectDto,
+  UpdateProjectDto,
+  CreateMilestoneDto,
+  UpdateMilestoneDto,
+  CreateTaskDto,
+  UpdateTaskDto,
+  CreateIssueDto,
+  UpdateIssueDto,
+} from '../dto/projects.dto';
 
 @Controller('/projects')
 export class ProjectsController {
-  constructor(
-    private readonly projectsService: ProjectsService,
-  ) { }
+  constructor(private readonly projectsService: ProjectsService) {}
   @Post('/')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
-  async createProject(@Body() createProjectDto: CreateProjectDto, @Req() req: any) {
+  async createProject(
+    @Body() createProjectDto: CreateProjectDto,
+    @Req() req: any,
+  ) {
     return this.projectsService.createProject(createProjectDto, req.user);
   }
   @Get(':id')
@@ -26,7 +46,11 @@ export class ProjectsController {
   @Patch('/:id')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
-  async updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto, @Req() req: any,) {
+  async updateProject(
+    @Param('id') id: string,
+    @Body() updateProjectDto: UpdateProjectDto,
+    @Req() req: any,
+  ) {
     return this.projectsService.updateProject(id, updateProjectDto, req.user);
   }
 
@@ -45,42 +69,70 @@ export class ProjectsController {
   @Post('/:id/milestones')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
-  async addMilestone(@Param('id') id: string, @Body() createMilestoneDto: CreateMilestoneDto, @Req() req: any,
+  async addMilestone(
+    @Param('id') id: string,
+    @Body() createMilestoneDto: CreateMilestoneDto,
+    @Req() req: any,
   ) {
-    return this.projectsService.addMilestone(id, createMilestoneDto, req.user,);
+    return this.projectsService.addMilestone(id, createMilestoneDto, req.user);
   }
 
   @Patch('/:id/milestones/:mid')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER)
-  async updateMilestone(@Param('id') id: string, @Param('mid') mid: string, @Body() updateMilestoneDto: UpdateMilestoneDto, @Req() req: any,
+  async updateMilestone(
+    @Param('id') id: string,
+    @Param('mid') mid: string,
+    @Body() updateMilestoneDto: UpdateMilestoneDto,
+    @Req() req: any,
   ) {
-    return this.projectsService.updateMilestone(id, mid, updateMilestoneDto, req.user);
+    return this.projectsService.updateMilestone(
+      id,
+      mid,
+      updateMilestoneDto,
+      req.user,
+    );
   }
   @Post('/:id/tasks')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
-  async addTask(@Param('id') id: string, @Body() createTaskDto: CreateTaskDto, @Req() req: any,
+  async addTask(
+    @Param('id') id: string,
+    @Body() createTaskDto: CreateTaskDto,
+    @Req() req: any,
   ) {
     return this.projectsService.addTask(id, createTaskDto, req.user);
   }
   @Patch('/:id/tasks/:tid')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER, Role.SUPER_ADMIN)
-  async updateTask(@Param('id') id: string, @Param('tid') tid: string, @Body() updateTaskDto: UpdateTaskDto, @Req() req: any,) {
+  async updateTask(
+    @Param('id') id: string,
+    @Param('tid') tid: string,
+    @Body() updateTaskDto: UpdateTaskDto,
+    @Req() req: any,
+  ) {
     return this.projectsService.updateTask(id, tid, updateTaskDto, req.user);
   }
   @Post('/:id/issues')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER,Role.SUPER_ADMIN)
-  async addIssue(@Param('id') id: string, @Body() createIssueDto: CreateIssueDto, @Req() req: any) {
-    return this.projectsService.addIssue(id, createIssueDto, req.user,);
+  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER, Role.SUPER_ADMIN)
+  async addIssue(
+    @Param('id') id: string,
+    @Body() createIssueDto: CreateIssueDto,
+    @Req() req: any,
+  ) {
+    return this.projectsService.addIssue(id, createIssueDto, req.user);
   }
 
   @Patch('/:id/issues/:iid')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
-  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER,Role.SUPER_ADMIN)
-  async updateIssue(@Param('id') id: string, @Param('iid') iid: string, @Body() updateIssueDto: UpdateIssueDto, @Req() req: any,
+  @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER, Role.SUPER_ADMIN)
+  async updateIssue(
+    @Param('id') id: string,
+    @Param('iid') iid: string,
+    @Body() updateIssueDto: UpdateIssueDto,
+    @Req() req: any,
   ) {
     return this.projectsService.updateIssue(id, iid, updateIssueDto, req.user);
   }

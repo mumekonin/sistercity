@@ -17,7 +17,7 @@ export class SearchService {
     private readonly eventModel: Model<Event>,
     @InjectModel(News.name)
     private readonly newsModel: Model<News>,
-  ) { }
+  ) {}
 
   async search(query: string, type?: string, currentUser?: any): Promise<any> {
     if (!query) throw new BadRequestException('Search query is required');
@@ -27,7 +27,10 @@ export class SearchService {
     // search projects
     if (!type || type === 'projects') {
       if (currentUser) {
-        const projects = await this.projectModel.find({ $text: { $search: query } }).select('title description status priority proposedBy adama aurora').lean();
+        const projects = await this.projectModel
+          .find({ $text: { $search: query } })
+          .select('title description status priority proposedBy adama aurora')
+          .lean();
 
         results.projects = projects
           .filter((p: any) => {

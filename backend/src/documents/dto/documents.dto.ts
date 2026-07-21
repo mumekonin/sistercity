@@ -1,8 +1,22 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsMongoId, IsDate, IsNumber, IsIn, Min, } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsMongoId,
+  IsDate,
+  IsNumber,
+  IsIn,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { DocumentCategory, AccessLevel, DocumentApprovalStatus, } from '../../common/enum/enum';
+import {
+  DocumentCategory,
+  AccessLevel,
+  DocumentApprovalStatus,
+} from '../../common/enum/enum';
 export class CreateDocumentDto {
-@IsString()
+  @IsString()
   @IsNotEmpty()
   title!: string;
   @IsEnum(DocumentCategory)

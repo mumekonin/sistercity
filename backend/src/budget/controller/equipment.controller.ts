@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Patch, Body, Param, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DbRolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorator/role.decorator';
@@ -8,9 +17,7 @@ import { CreateEquipmentDto, UpdateEquipmentDto } from '../dto/equipment.dto';
 
 @Controller('/equipment')
 export class EquipmentController {
-  constructor(
-    private readonly budgetService: BudgetService,
-  ) { }
+  constructor(private readonly budgetService: BudgetService) {}
 
   @Post('/:projectId')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
@@ -20,7 +27,11 @@ export class EquipmentController {
     @Body() createEquipmentDto: CreateEquipmentDto,
     @Req() req: any,
   ) {
-    return this.budgetService.addEquipment(projectId, createEquipmentDto, req.user);
+    return this.budgetService.addEquipment(
+      projectId,
+      createEquipmentDto,
+      req.user,
+    );
   }
 
   @Get('/:projectId')

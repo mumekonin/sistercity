@@ -1,6 +1,15 @@
-import {  IsString, IsNotEmpty, IsEnum, IsOptional, IsMongoId, IsArray, ValidateNested, IsIn} from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsMongoId,
+  IsArray,
+  ValidateNested,
+  IsIn,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import {City,MessageType,MessagePriority} from '../../common/enum/enum';
+import { City, MessageType, MessagePriority } from '../../common/enum/enum';
 export class MessageToDto {
   @IsNotEmpty()
   @IsEnum(City)

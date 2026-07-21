@@ -1,4 +1,4 @@
-import { NotificationPriority, NotificationType } from "src/common/enum/enum";
+import { NotificationPriority, NotificationType } from 'src/common/enum/enum';
 
 export class CreateNotificationInternalDto {
   recipient!: string;

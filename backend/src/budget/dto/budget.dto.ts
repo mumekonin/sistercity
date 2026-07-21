@@ -1,6 +1,15 @@
-import { IsString, IsNotEmpty, IsEnum, IsNumber, IsDate, IsOptional, IsIn, Min,} from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsNumber,
+  IsDate,
+  IsOptional,
+  IsIn,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { ExpenditureCategory} from '../../common/enum/enum';
+import { ExpenditureCategory } from '../../common/enum/enum';
 export class CreateExpenditureDto {
   @IsEnum(ExpenditureCategory)
   @IsNotEmpty()
@@ -8,16 +17,16 @@ export class CreateExpenditureDto {
 
   @IsString()
   @IsNotEmpty()
-  description!: string;       
+  description!: string;
 
   @IsNumber()
   @Min(1)
   @Type(() => Number)
-  amount!: number;            
+  amount!: number;
 
   @IsDate()
   @Type(() => Date)
-  date!: Date;                    
+  date!: Date;
 }
 
 export class UpdateExpenditureDto {
@@ -30,4 +39,3 @@ export class UpdateExpenditureDto {
   @IsString()
   rejectionReason?: string;
 }
-

@@ -1,13 +1,33 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateMessageDto, ReplyMessageDto, UpdateMessageDto, } from '../dto/communication.dto';
-import { MessageResponse, MessageListResponse, ThreadItemResponse } from '../response/communication.response';
-import { MessageStatus, MessagePriority, Role } from '../../common/enum/enum';
+import {
+  CreateMessageDto,
+  ReplyMessageDto,
+  UpdateMessageDto,
+} from '../dto/communication.dto';
+import {
+  MessageResponse,
+  MessageListResponse,
+  ThreadItemResponse,
+} from '../response/communication.response';
+import {
+  MessageStatus,
+  MessagePriority,
+  Role,
+  NotificationType,
+  NotificationPriority,
+} from '../../common/enum/enum';
 import { Message } from '../schema/communication.schema';
 import { User } from 'src/users/schema/users.shema';
 import { Types } from 'mongoose';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
+import { NotificationService } from '../../notifications/service/notifications.service';
 
 @Injectable()
 export class MessageService {
@@ -17,11 +37,29 @@ export class MessageService {
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
     private readonly cloudinaryService: CloudinaryService,
-  ) { }
+    private readonly notificationService: NotificationService,
+  ) {}
 
+  private async resolveMessageRecipients(to: {
+    city: string;
+    department: string;
+    userId?: string | null;
+  }): Promise<string[]> {
+    if (to.userId) return [to.userId];
+    const users = await this.userModel
+      .find({ city: to.city, department: to.department, isActive: true } as any)
+      .select('_id')
+      .lean();
+    return users.map((u: any) => u._id.toString());
+  }
   // Upload a file directly to Cloudinary for message attachment (no Document record created)
-  async uploadMessageAttachment(file: Express.Multer.File): Promise<{ fileUrl: string; fileName: string }> {
-    const uploaded = await this.cloudinaryService.uploadFile(file, 'sister-city/message-attachments');
+  async uploadMessageAttachment(
+    file: Express.Multer.File,
+  ): Promise<{ fileUrl: string; fileName: string }> {
+    const uploaded = await this.cloudinaryService.uploadFile(
+      file,
+      'sister-city/message-attachments',
+    );
     return {
       fileUrl: uploaded.fileUrl,
       fileName: uploaded.fileName,
@@ -31,7 +69,10 @@ export class MessageService {
   private async generateReferenceNumber(city: string): Promise<string> {
     const year = new Date().getFullYear();
     // count messages per city per year
-    const count = await this.messageModel.countDocuments({ 'from.city': city, createdAt: { $gte: new Date(`${year}-01-01`) } } as any);
+    const count = await this.messageModel.countDocuments({
+      'from.city': city,
+      createdAt: { $gte: new Date(`${year}-01-01`) },
+    } as any);
 
     const sequence = String(count + 1).padStart(4, '0');
     return `${city.slice(0, 3)}-SC/${year}/${sequence}`;
@@ -47,10 +88,15 @@ export class MessageService {
     return deadline;
   }
   // Send Message
-  async sendMessage(createMessageDto: CreateMessageDto, currentUser: any): Promise<MessageResponse> {
+  async sendMessage(
+    createMessageDto: CreateMessageDto,
+    currentUser: any,
+  ): Promise<MessageResponse> {
     const sender = await this.userModel.findById(currentUser.userId);
     if (!sender) throw new NotFoundException('Sender not found');
-    const referenceNumber = await this.generateReferenceNumber(currentUser.city);
+    const referenceNumber = await this.generateReferenceNumber(
+      currentUser.city,
+    );
     const responseDeadline = this.calculateDeadline(createMessageDto.priority);
     const message = new this.messageModel({
       referenceNumber,
@@ -82,16 +128,21 @@ export class MessageService {
 
     const saved = await message.save();
     const updated = await this.messageModel
-      .findByIdAndUpdate(
-        saved._id,
-        { threadId: saved._id },
-        { new: true },
-      )
+      .findByIdAndUpdate(saved._id, { threadId: saved._id }, { new: true })
       .lean();
     if (!updated) throw new NotFoundException('Message not found after save');
+
+    const recipients = await this.resolveMessageRecipients(updated.to as any);
+    await this.notificationService.createMany(recipients, {
+      type: NotificationType.MESSAGE_RECEIVED,
+      title: `New message from ${sender.fullName}`,
+      body: updated.subject,
+      link: `/messages?open=${updated._id}`,
+      priority: updated.priority as unknown as NotificationPriority,
+    });
+
     return this.toMessageResponse(updated, []);
   }
-
 
   private toMessageResponse(message: any, thread: any[]): MessageResponse {
     return {
@@ -151,7 +202,10 @@ export class MessageService {
       updatedAt: message.updatedAt,
     };
   }
-  async getMessages(currentUser: any, type: string = 'received'): Promise<MessageListResponse[]> {
+  async getMessages(
+    currentUser: any,
+    type: string = 'received',
+  ): Promise<MessageListResponse[]> {
     let filter: any = {};
 
     switch (type) {
@@ -164,7 +218,6 @@ export class MessageService {
         break;
 
       case 'sent':
-
         filter = {
           'from.userId': currentUser.userId,
           isArchived: { $in: [false, null, undefined] },
@@ -247,34 +300,53 @@ export class MessageService {
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this message');
     }
-    if (message.status === MessageStatus.SENT && message.to.city === currentUser.city) {
-      await this.messageModel.findByIdAndUpdate(id, { status: MessageStatus.READ, readAt: new Date() });
+    if (
+      message.status === MessageStatus.SENT &&
+      message.to.city === currentUser.city
+    ) {
+      await this.messageModel.findByIdAndUpdate(id, {
+        status: MessageStatus.READ,
+        readAt: new Date(),
+      });
       message.status = MessageStatus.READ;
       message.readAt = new Date();
     }
-    
+
     const threadIdToSearch = message.threadId || message._id;
-    const thread = await this.messageModel.find({ threadId: threadIdToSearch, _id: { $ne: message._id }, }).sort({ createdAt: 1 }).lean();
+    const thread = await this.messageModel
+      .find({ threadId: threadIdToSearch, _id: { $ne: message._id } })
+      .sort({ createdAt: 1 })
+      .lean();
 
     return this.toMessageResponse(message, thread);
   }
 
   // Reply to Message
-  async replyToMessage(id: string, replyMessageDto: ReplyMessageDto, currentUser: any): Promise<MessageResponse> {
+  async replyToMessage(
+    id: string,
+    replyMessageDto: ReplyMessageDto,
+    currentUser: any,
+  ): Promise<MessageResponse> {
     const parentMessage = await this.messageModel.findById(id);
     if (!parentMessage) throw new NotFoundException('Message not found');
     const sender = await this.userModel.findById(currentUser.userId);
     if (!sender) throw new NotFoundException('Sender not found');
-    const isRecipient = parentMessage.to.city === currentUser.city && parentMessage.to.department === currentUser.department;
+    const isRecipient =
+      parentMessage.to.city === currentUser.city &&
+      parentMessage.to.department === currentUser.department;
     if (!isRecipient) {
-      throw new ForbiddenException('Only the recipient can reply to this message');
+      throw new ForbiddenException(
+        'Only the recipient can reply to this message',
+      );
     }
     if (parentMessage.status === MessageStatus.CLOSED) {
       throw new BadRequestException('Cannot reply to a closed message');
     }
 
-    const referenceNumber = await this.generateReferenceNumber(currentUser.city);
-    const responseDeadline = this.calculateDeadline(parentMessage.priority as unknown as MessagePriority);
+    const referenceNumber = await this.generateReferenceNumber(
+      currentUser.city,
+    );
+    const responseDeadline = this.calculateDeadline(parentMessage.priority);
 
     const reply = new this.messageModel({
       referenceNumber,
@@ -305,18 +377,35 @@ export class MessageService {
     });
 
     const savedReply = await reply.save();
-    parentMessage.status = MessageStatus.REPLIED as unknown as typeof parentMessage.status;
+    parentMessage.status = MessageStatus.REPLIED;
     await parentMessage.save();
+
+    const recipients = await this.resolveMessageRecipients(
+      savedReply.to as any,
+    );
+    await this.notificationService.createMany(recipients, {
+      type: NotificationType.MESSAGE_RECEIVED,
+      title: `${sender.fullName} replied: ${parentMessage.subject}`,
+      body: replyMessageDto.body,
+      link: `/messages?open=${parentMessage._id}`,
+      priority: savedReply.priority as unknown as NotificationPriority,
+    });
+
     return this.toMessageResponse(savedReply, []);
   }
-  // Update Message 
-  async updateMessage(id: string, updateMessageDto: UpdateMessageDto,
-    currentUser: any): Promise<MessageResponse> {
+  // Update Message
+  async updateMessage(
+    id: string,
+    updateMessageDto: UpdateMessageDto,
+    currentUser: any,
+  ): Promise<MessageResponse> {
     const message = await this.messageModel.findById(id);
     if (!message) throw new NotFoundException('Message not found');
     if (currentUser.role === Role.CITY_ADMIN) {
       if (message.to.city !== currentUser.city) {
-        throw new ForbiddenException('You can only manage messages for your own city');
+        throw new ForbiddenException(
+          'You can only manage messages for your own city',
+        );
       }
     }
 
@@ -326,14 +415,17 @@ export class MessageService {
           throw new BadRequestException('Message is already escalated');
         }
         message.isEscalated = true;
-        message.status = MessageStatus.ESCALATED as unknown as typeof message.status;
+        message.status = MessageStatus.ESCALATED;
         break;
 
       case 'close':
-        if (message.status === MessageStatus.CLOSED as unknown as typeof message.status) {
+        if (
+          message.status ===
+          (MessageStatus.CLOSED as unknown as typeof message.status)
+        ) {
           throw new BadRequestException('Message is already closed');
         }
-        message.status = MessageStatus.CLOSED as unknown as typeof message.status;
+        message.status = MessageStatus.CLOSED;
         break;
 
       default:

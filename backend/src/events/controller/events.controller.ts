@@ -1,15 +1,28 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
-import { EventService } from "../service/events.service";
-import { AuthGuard } from "@nestjs/passport";
-import { DbRolesGuard } from "src/common/guards/roles.guard";
-import { Roles } from "src/common/decorator/role.decorator";
-import { Role } from "src/common/enum/enum";
-import { CreateEventDto, UpdateEventDto ,ConfirmMinutesDto} from "../dto/events.dto";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { EventService } from '../service/events.service';
+import { AuthGuard } from '@nestjs/passport';
+import { DbRolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorator/role.decorator';
+import { Role } from 'src/common/enum/enum';
+import {
+  CreateEventDto,
+  UpdateEventDto,
+  ConfirmMinutesDto,
+} from '../dto/events.dto';
 @Controller('/events')
 export class EventController {
-  constructor(
-    private readonly eventService: EventService,
-  ) { }
+  constructor(private readonly eventService: EventService) {}
   @Post('/')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
@@ -17,17 +30,29 @@ export class EventController {
     return this.eventService.createEvent(createEventDto, req.user);
   }
   @Get('/')
-  async getAllEvents(@Query('month') month?: string, @Query('year') year?: string, @Req() req?: any) {
-    return this.eventService.getAllEvents(req?.user, month ? parseInt(month) : undefined, year ? parseInt(year) : undefined);
+  async getAllEvents(
+    @Query('month') month?: string,
+    @Query('year') year?: string,
+    @Req() req?: any,
+  ) {
+    return this.eventService.getAllEvents(
+      req?.user,
+      month ? parseInt(month) : undefined,
+      year ? parseInt(year) : undefined,
+    );
   }
   @Get(':id')
-  async getEventById(@Param('id') id: string, @Req() req: any,) {
+  async getEventById(@Param('id') id: string, @Req() req: any) {
     return this.eventService.getEventById(id, req.user ?? null);
   }
   @Put(':id')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
-  async updateEvent(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto, @Req() req: any) {
+  async updateEvent(
+    @Param('id') id: string,
+    @Body() updateEventDto: UpdateEventDto,
+    @Req() req: any,
+  ) {
     return this.eventService.updateEvent(id, updateEventDto, req.user);
   }
   @Patch(':id/cancel')
@@ -39,7 +64,11 @@ export class EventController {
   @Patch(':id/minutes')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
-  async updateMinutes(   @Param('id') id: string,   @Body() confirmMinutesDto: ConfirmMinutesDto,   @Req() req: any ) {
+  async updateMinutes(
+    @Param('id') id: string,
+    @Body() confirmMinutesDto: ConfirmMinutesDto,
+    @Req() req: any,
+  ) {
     return this.eventService.updateMinutes(id, confirmMinutesDto, req.user);
   }
 }

@@ -1,23 +1,23 @@
 export enum Role {
-  SUPER_ADMIN = "SUPER_ADMIN",
-  CITY_ADMIN = "CITY_ADMIN",
-  DEPT_OFFICER = "DEPT_OFFICER"
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  CITY_ADMIN = 'CITY_ADMIN',
+  DEPT_OFFICER = 'DEPT_OFFICER',
 }
 export enum City {
-  ADAMA = "ADAMA",
-  AURORA = "AURORA",
+  ADAMA = 'ADAMA',
+  AURORA = 'AURORA',
 }
 export enum Department {
-  CITY_ADMINISTRATION = "CITY_ADMINISTRATION",
-  TRANSPORT = "TRANSPORT",
-  URBAN_DEVELOPMENT = "URBAN_DEVELOPMENT",
-  CONSTRUCTION = "CONSTRUCTION",
-  WATER_SANITATION = "WATER_SANITATION",
-  EDUCATION = "EDUCATION",
-  HEALTH = "HEALTH",
-  COMMUNICATION = "COMMUNICATION",
-  ENVIRONMENT = "ENVIRONMENT",
-  PARKS_AND_GREEN_SPACES = "PARKS_AND_GREEN_SPACES",
+  CITY_ADMINISTRATION = 'CITY_ADMINISTRATION',
+  TRANSPORT = 'TRANSPORT',
+  URBAN_DEVELOPMENT = 'URBAN_DEVELOPMENT',
+  CONSTRUCTION = 'CONSTRUCTION',
+  WATER_SANITATION = 'WATER_SANITATION',
+  EDUCATION = 'EDUCATION',
+  HEALTH = 'HEALTH',
+  COMMUNICATION = 'COMMUNICATION',
+  ENVIRONMENT = 'ENVIRONMENT',
+  PARKS_AND_GREEN_SPACES = 'PARKS_AND_GREEN_SPACES',
 }
 export enum ProjectStatus {
   PROPOSED = 'PROPOSED',
@@ -51,7 +51,7 @@ export enum TaskStatus {
 
 export enum TaskPriority {
   URGENT = 'URGENT',
-  HIGH = "HIGH",
+  HIGH = 'HIGH',
   NORMAL = 'NORMAL',
   LOW = 'LOW',
 }
@@ -71,7 +71,7 @@ export enum IssueSeverity {
 export enum Responsible {
   ADAMA = 'ADAMA',
   SHEGER = 'AURORA',
-  BOTH = 'BOTH'
+  BOTH = 'BOTH',
 }
 //document enums
 export enum DocumentCategory {
@@ -95,7 +95,7 @@ export enum AccessLevel {
 export enum DocumentApprovalStatus {
   DRAFT = 'DRAFT',
   APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
+  REJECTED = 'REJECTED',
 }
 //message enums
 export enum MessageType {
@@ -201,7 +201,7 @@ export enum NotificationPriority {
   URGENT = 'URGENT',
   CRITICAL = 'CRITICAL',
 }
-// Report Enums 
+// Report Enums
 export enum ReportType {
   PARTNERSHIP_PROGRESS = 'PARTNERSHIP_PROGRESS',
   PROJECT_COMPLETION = 'PROJECT_COMPLETION',

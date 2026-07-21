@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorator/role.decorator';
 import { Role } from '../enum/enum';
@@ -8,16 +13,16 @@ export class DbRolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-    if (!requiredRoles) return true; 
+    if (!requiredRoles) return true;
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-    console.log("the user information is " ,user)
+    console.log('the user information is ', user);
     if (!user || !user.userId) {
       throw new UnauthorizedException('User not authenticated');
     }

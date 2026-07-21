@@ -1,21 +1,35 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { Model } from "mongoose";
-import { InjectModel } from "@nestjs/mongoose";
-import { CityProfile } from "../schema/cityProfile.schema";
-import { CreateCityProfileDto, UpdateCityProfileDto } from "../dto/cityProfile.dto";
-import { CityProfileResponse, DepartmentResponse } from "../response/cityProfile.response";
-import { ConflictException } from "@nestjs/common";
-import { Role } from "src/common/enum/enum";
-import { City } from "src/common/enum/enum"
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { CityProfile } from '../schema/cityProfile.schema';
+import {
+  CreateCityProfileDto,
+  UpdateCityProfileDto,
+} from '../dto/cityProfile.dto';
+import {
+  CityProfileResponse,
+  DepartmentResponse,
+} from '../response/cityProfile.response';
+import { ConflictException } from '@nestjs/common';
+import { Role } from 'src/common/enum/enum';
+import { City } from 'src/common/enum/enum';
 @Injectable()
 export class CityProfileService {
   constructor(
     @InjectModel(CityProfile.name)
-    private readonly cityProfileModel: Model<CityProfile>
-  ) { }
+    private readonly cityProfileModel: Model<CityProfile>,
+  ) {}
 
-  async createCityProfile(createCityProfileDto: CreateCityProfileDto): Promise<CityProfileResponse> {
-    const existing = await this.cityProfileModel.findOne({ city: createCityProfileDto.city });
+  async createCityProfile(
+    createCityProfileDto: CreateCityProfileDto,
+  ): Promise<CityProfileResponse> {
+    const existing = await this.cityProfileModel.findOne({
+      city: createCityProfileDto.city,
+    });
     if (existing) {
       throw new ConflictException(
         `Profile for ${createCityProfileDto.city} already exists`,
@@ -70,15 +84,23 @@ export class CityProfileService {
     return cityProfileResponse;
   }
 
-  async updateCityProfile(cityName: string, updateDto: UpdateCityProfileDto, currentUser: any,): Promise<CityProfileResponse> {
-    const profile = await this.cityProfileModel.findOne({ city: cityName.toUpperCase() as City });
+  async updateCityProfile(
+    cityName: string,
+    updateDto: UpdateCityProfileDto,
+    currentUser: any,
+  ): Promise<CityProfileResponse> {
+    const profile = await this.cityProfileModel.findOne({
+      city: cityName.toUpperCase() as City,
+    });
     if (!profile) throw new NotFoundException(`Profile  not found`);
 
-    if (currentUser.role === Role.CITY_ADMIN && currentUser.city !== profile.city) {
+    if (
+      currentUser.role === Role.CITY_ADMIN &&
+      currentUser.city !== profile.city
+    ) {
       throw new ForbiddenException('You can only update your own city profile');
     }
 
-     
     if (updateDto.basicInfo?.name) {
       profile.basicInfo.name = updateDto.basicInfo.name;
     }
@@ -94,7 +116,6 @@ export class CityProfileService {
     if (updateDto.basicInfo?.officialWebsite) {
       profile.basicInfo.officialWebsite = updateDto.basicInfo.officialWebsite;
     }
-    
 
     if (updateDto.population?.total) {
       profile.population.total = updateDto.population.total;
@@ -131,11 +152,12 @@ export class CityProfileService {
     if (updateDto.contactInfo?.email) {
       profile.contactInfo.email = updateDto.contactInfo.email;
     }
-    
-    if (updateDto.partnershipHistory?.agreementDate) {
-      profile.partnershipHistory.agreementDate = updateDto.partnershipHistory.agreementDate;
 
-    } if (updateDto.partnershipHistory?.summary) {
+    if (updateDto.partnershipHistory?.agreementDate) {
+      profile.partnershipHistory.agreementDate =
+        updateDto.partnershipHistory.agreementDate;
+    }
+    if (updateDto.partnershipHistory?.summary) {
       profile.partnershipHistory.summary = updateDto.partnershipHistory.summary;
     }
     const updated = await profile.save();
@@ -191,53 +213,57 @@ export class CityProfileService {
       return [];
     }
 
-    const cityProfilesResponse: CityProfileResponse[] = profiles.map((profile) => {
-      return {
-        id: profile._id.toString(),
-        city: profile.city,
-        basicInfo: {
-          name: profile.basicInfo.name,
-          region: profile.basicInfo.region,
-          yearEstablished: profile.basicInfo.yearEstablished,
-          landAreaSm2: profile.basicInfo.landAreaSm2,
-          officialWebsite: profile.basicInfo.officialWebsite
-        },
-        population: {
-          total: profile.population.total,
-          male: profile.population.male,
-          female: profile.population.female,
-          youth: profile.population.youth,
-          lastUpdated: profile.population.lastUpdated,
-        },
-        keyOfficials: profile.keyOfficials.map((official: any) => ({
-          name: official.name,
-          title: official.title,
-          email: official.email,
-          phone: official.phone,
-        })),
-        departments: profile.departments.map((dept: any) => ({
-          name: dept.name,
-          headName: dept.headName,
-          headEmail: dept.headEmail,
-        })),
-        areasOfFocus: profile.areasOfFocus,
-        contactInfo: {
-          address: profile.contactInfo.address,
-          phone: profile.contactInfo.phone,
-          email: profile.contactInfo.email,
-        },
-        partnershipHistory: {
-          agreementDate: profile.partnershipHistory.agreementDate,
-          summary: profile.partnershipHistory.summary,
-        },
-        updatedAt: profile.updatedAt,
-        createdAt: profile.createdAt,
-      };
-    });
+    const cityProfilesResponse: CityProfileResponse[] = profiles.map(
+      (profile) => {
+        return {
+          id: profile._id.toString(),
+          city: profile.city,
+          basicInfo: {
+            name: profile.basicInfo.name,
+            region: profile.basicInfo.region,
+            yearEstablished: profile.basicInfo.yearEstablished,
+            landAreaSm2: profile.basicInfo.landAreaSm2,
+            officialWebsite: profile.basicInfo.officialWebsite,
+          },
+          population: {
+            total: profile.population.total,
+            male: profile.population.male,
+            female: profile.population.female,
+            youth: profile.population.youth,
+            lastUpdated: profile.population.lastUpdated,
+          },
+          keyOfficials: profile.keyOfficials.map((official: any) => ({
+            name: official.name,
+            title: official.title,
+            email: official.email,
+            phone: official.phone,
+          })),
+          departments: profile.departments.map((dept: any) => ({
+            name: dept.name,
+            headName: dept.headName,
+            headEmail: dept.headEmail,
+          })),
+          areasOfFocus: profile.areasOfFocus,
+          contactInfo: {
+            address: profile.contactInfo.address,
+            phone: profile.contactInfo.phone,
+            email: profile.contactInfo.email,
+          },
+          partnershipHistory: {
+            agreementDate: profile.partnershipHistory.agreementDate,
+            summary: profile.partnershipHistory.summary,
+          },
+          updatedAt: profile.updatedAt,
+          createdAt: profile.createdAt,
+        };
+      },
+    );
     return cityProfilesResponse;
   }
   async getCityProfileByCity(cityName: string): Promise<CityProfileResponse> {
-    const profile = await this.cityProfileModel.findOne({ city: cityName.toUpperCase() as City }).lean();
+    const profile = await this.cityProfileModel
+      .findOne({ city: cityName.toUpperCase() as City })
+      .lean();
 
     if (!profile) {
       throw new NotFoundException(`Profile for ${cityName} not found`);
@@ -251,7 +277,7 @@ export class CityProfileService {
         region: profile.basicInfo.region,
         yearEstablished: profile.basicInfo.yearEstablished,
         landAreaSm2: profile.basicInfo.landAreaSm2,
-        officialWebsite: profile.basicInfo.officialWebsite
+        officialWebsite: profile.basicInfo.officialWebsite,
       },
       population: {
         total: profile.population.total,
@@ -288,23 +314,25 @@ export class CityProfileService {
     return cityProfileResponse;
   }
   async getCityDepartments(city: string): Promise<DepartmentResponse[]> {
-  const profile = await this.cityProfileModel
-    .findOne({ city: city.toUpperCase() as City })
-    .select('departments')
-    .lean();
+    const profile = await this.cityProfileModel
+      .findOne({ city: city.toUpperCase() as City })
+      .select('departments')
+      .lean();
 
-  if (!profile) {
-    throw new NotFoundException(`Profile for ${city} not found`);
+    if (!profile) {
+      throw new NotFoundException(`Profile for ${city} not found`);
+    }
+
+    const departmentsResponse: DepartmentResponse[] = profile.departments.map(
+      (dept: any) => {
+        return {
+          name: dept.name,
+          headName: dept.headName,
+          headEmail: dept.headEmail,
+        };
+      },
+    );
+
+    return departmentsResponse;
   }
-
-  const departmentsResponse: DepartmentResponse[] = profile.departments.map((dept: any) => {
-    return {
-      name: dept.name,
-      headName: dept.headName,
-      headEmail: dept.headEmail,
-    };
-  });
-
-  return departmentsResponse;
-}
 }

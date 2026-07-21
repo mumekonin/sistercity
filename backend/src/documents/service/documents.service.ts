@@ -1,24 +1,55 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { DocumentApprovalStatus, AccessLevel, Role, City } from '../../common/enum/enum';
+import {
+  DocumentApprovalStatus,
+  AccessLevel,
+  Role,
+  City,
+  NotificationType,
+  NotificationPriority,
+} from '../../common/enum/enum';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 import { DocumentFile } from '../schema/documents.shema';
-import { CreateDocumentDto, UpdateDocumentDto, UploadNewVersionDto } from '../dto/documents.dto';
-import { DocumentListResponse, DocumentResponse } from '../response/documents.response';
+import {
+  CreateDocumentDto,
+  UpdateDocumentDto,
+  UploadNewVersionDto,
+} from '../dto/documents.dto';
+import {
+  DocumentListResponse,
+  DocumentResponse,
+} from '../response/documents.response';
+import { User } from '../../users/schema/users.shema';
+import { NotificationService } from '../../notifications/service/notifications.service';
 
 @Injectable()
 export class DocumentsService {
   constructor(
     @InjectModel(DocumentFile.name)
     private readonly documentModel: Model<DocumentFile>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
     private readonly cloudinaryService: CloudinaryService,
-  ) { }
-  async uploadDocument(createDocumentDto: CreateDocumentDto, file: Express.Multer.File, currentUser: any): Promise<DocumentResponse> {
+    private readonly notificationService: NotificationService,
+  ) {}
+  async uploadDocument(
+    createDocumentDto: CreateDocumentDto,
+    file: Express.Multer.File,
+    currentUser: any,
+  ): Promise<DocumentResponse> {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    const uploadedFile = await this.cloudinaryService.uploadFile(file, 'sister-city/documents');
+    const uploadedFile = await this.cloudinaryService.uploadFile(
+      file,
+      'sister-city/documents',
+    );
     if (createDocumentDto.expiryDate) {
       if (createDocumentDto.expiryDate <= new Date()) {
         throw new BadRequestException('Expiry date must be in the future');
@@ -51,13 +82,32 @@ export class DocumentsService {
       approvedBy: null,
       approvalNote: null,
       isArchived: false,
-      activityLog: [{
-        userId: currentUser.userId,
-        action: 'UPLOADED',
-        timestamp: new Date(),
-      }],
+      activityLog: [
+        {
+          userId: currentUser.userId,
+          action: 'UPLOADED',
+          timestamp: new Date(),
+        },
+      ],
     });
     const savedDocument = await newDocument.save();
+    // Notify city admins about the new document upload
+    const cityAdmins = await this.userModel
+      .find({ city: currentUser.city, role: Role.CITY_ADMIN, isActive: true })
+      .select('_id')
+      .lean();
+    const cityAdminIds = cityAdmins
+      .map((u: any) => u._id.toString())
+      .filter((id: string) => id !== currentUser.userId);
+    if (cityAdminIds.length) {
+      await this.notificationService.createMany(cityAdminIds, {
+        type: NotificationType.DOCUMENT_UPLOADED,
+        title: `New document uploaded: ${createDocumentDto.title}`,
+        body: `A new document has been uploaded by ${currentUser.city} — ${currentUser.department}.`,
+        link: `/documents/${savedDocument._id}`,
+        priority: NotificationPriority.NORMAL,
+      });
+    }
     return this.mapToResponse(savedDocument);
   }
   private mapToResponse(doc: any): DocumentResponse {
@@ -99,10 +149,9 @@ export class DocumentsService {
     };
   }
   async getAllDocuments(currentUser: any): Promise<DocumentListResponse[]> {
-
     let documents: any[] = [];
 
-    //Super Admin sees everything 
+    //Super Admin sees everything
     if (currentUser.role === Role.SUPER_ADMIN) {
       documents = await this.documentModel.find({ isArchived: false }).lean();
     }
@@ -112,14 +161,15 @@ export class DocumentsService {
       documents = await this.documentModel
         .find({
           isArchived: false,
-          $or: [{ city: currentUser.city },
-          {
-            city: { $ne: currentUser.city },
-            accessLevel: {
-              $in: [AccessLevel.PUBLIC, AccessLevel.BOTH_CITIES]
-            }
-          }
-          ]
+          $or: [
+            { city: currentUser.city },
+            {
+              city: { $ne: currentUser.city },
+              accessLevel: {
+                $in: [AccessLevel.PUBLIC, AccessLevel.BOTH_CITIES],
+              },
+            },
+          ],
         })
         .lean();
     }
@@ -140,23 +190,25 @@ export class DocumentsService {
               city: currentUser.city,
               department: { $ne: currentUser.department },
               accessLevel: {
-                $in: [AccessLevel.PUBLIC, AccessLevel.BOTH_CITIES, AccessLevel.OWN_CITY_ONLY]
-              }
+                $in: [
+                  AccessLevel.PUBLIC,
+                  AccessLevel.BOTH_CITIES,
+                  AccessLevel.OWN_CITY_ONLY,
+                ],
+              },
             },
             {
               city: { $ne: currentUser.city },
               accessLevel: {
-                $in: [AccessLevel.PUBLIC, AccessLevel.BOTH_CITIES]
-              }
+                $in: [AccessLevel.PUBLIC, AccessLevel.BOTH_CITIES],
+              },
             },
-          ]
+          ],
         })
         .lean();
     }
     if (!documents || documents.length === 0) return [];
-    return documents.map((doc: any) =>
-      this.mapToListResponse(doc)
-    );
+    return documents.map((doc: any) => this.mapToListResponse(doc));
   }
   private mapToListResponse(doc: any): DocumentListResponse {
     return {
@@ -182,7 +234,10 @@ export class DocumentsService {
       updatedAt: doc.updatedAt,
     };
   }
-  async getDocumentById(documentId: string, currentUser: any): Promise<DocumentResponse> {
+  async getDocumentById(
+    documentId: string,
+    currentUser: any,
+  ): Promise<DocumentResponse> {
     const doc = await this.documentModel.findById(documentId).lean();
 
     if (!doc) {
@@ -196,73 +251,95 @@ export class DocumentsService {
       // City Admin
     } else if (currentUser.role === Role.CITY_ADMIN) {
       if (doc.city === currentUser.city) {
-
         // Other city
       } else {
-        if (doc.accessLevel === AccessLevel.DEPARTMENT_ONLY || doc.accessLevel === AccessLevel.ADMINS_ONLY || doc.accessLevel === AccessLevel.OWN_CITY_ONLY
+        if (
+          doc.accessLevel === AccessLevel.DEPARTMENT_ONLY ||
+          doc.accessLevel === AccessLevel.ADMINS_ONLY ||
+          doc.accessLevel === AccessLevel.OWN_CITY_ONLY
         ) {
-          throw new ForbiddenException('You do not have permission to view this document');
+          throw new ForbiddenException(
+            'You do not have permission to view this document',
+          );
         }
       }
 
       // Dept Officer
     } else if (currentUser.role === Role.DEPT_OFFICER) {
-      // Own department 
-      if (doc.city === currentUser.city && doc.department === currentUser.department) {
-        // Same city 
+      // Own department
+      if (
+        doc.city === currentUser.city &&
+        doc.department === currentUser.department
+      ) {
+        // Same city
       } else if (
         doc.city === currentUser.city &&
-        (doc.accessLevel === AccessLevel.PUBLIC || doc.accessLevel === AccessLevel.BOTH_CITIES || doc.accessLevel === AccessLevel.OWN_CITY_ONLY)
+        (doc.accessLevel === AccessLevel.PUBLIC ||
+          doc.accessLevel === AccessLevel.BOTH_CITIES ||
+          doc.accessLevel === AccessLevel.OWN_CITY_ONLY)
       ) {
       } else if (
         doc.city !== currentUser.city &&
-        (
-          doc.accessLevel === AccessLevel.PUBLIC ||
-          doc.accessLevel === AccessLevel.BOTH_CITIES
-        )
+        (doc.accessLevel === AccessLevel.PUBLIC ||
+          doc.accessLevel === AccessLevel.BOTH_CITIES)
       ) {
       } else {
-        throw new ForbiddenException('You do not have permission to view this document');
+        throw new ForbiddenException(
+          'You do not have permission to view this document',
+        );
       }
     }
-    await this.documentModel.findByIdAndUpdate(
-      documentId,
-      {
-        $push: {
-          activityLog: {
-            userId: currentUser.userId,
-            action: 'VIEWED',
-            timestamp: new Date(),
-          }
-        }
-      }
-    );
+    await this.documentModel.findByIdAndUpdate(documentId, {
+      $push: {
+        activityLog: {
+          userId: currentUser.userId,
+          action: 'VIEWED',
+          timestamp: new Date(),
+        },
+      },
+    });
     return this.mapToResponse(doc);
   }
-  async uploadNewVersion(documentId: string, uploadNewVersionDto: UploadNewVersionDto, file: Express.Multer.File, currentUser: any): Promise<DocumentResponse> {
+  async uploadNewVersion(
+    documentId: string,
+    uploadNewVersionDto: UploadNewVersionDto,
+    file: Express.Multer.File,
+    currentUser: any,
+  ): Promise<DocumentResponse> {
     const doc = await this.documentModel.findById(documentId);
 
     if (!doc) {
       throw new NotFoundException('Document not found');
     }
     if (doc.isArchived) {
-      throw new BadRequestException('Cannot upload a new version to an archived document');
+      throw new BadRequestException(
+        'Cannot upload a new version to an archived document',
+      );
     }
     if (currentUser.role === Role.DEPT_OFFICER) {
       if (
-        doc.city !== currentUser.city || doc.department !== currentUser.department) {
-        throw new ForbiddenException('You can only update documents from your own department');
+        doc.city !== currentUser.city ||
+        doc.department !== currentUser.department
+      ) {
+        throw new ForbiddenException(
+          'You can only update documents from your own department',
+        );
       }
     }
     if (currentUser.role === Role.CITY_ADMIN) {
       if (doc.city !== currentUser.city) {
-        throw new ForbiddenException('You can only update documents from your own city');
+        throw new ForbiddenException(
+          'You can only update documents from your own city',
+        );
       }
     }
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    const uploadedFile = await this.cloudinaryService.uploadFile(file, 'sister-city/documents');
+    const uploadedFile = await this.cloudinaryService.uploadFile(
+      file,
+      'sister-city/documents',
+    );
     doc.previousVersions.push({
       fileUrl: doc.fileUrl,
       fileName: doc.fileName,
@@ -285,26 +362,32 @@ export class DocumentsService {
       userId: currentUser.userId,
       action: 'UPLOADED',
       timestamp: new Date(),
-    } as any);
+    });
     doc.markModified('previousVersions');
     doc.markModified('activityLog');
     const updatedDoc = await doc.save();
     return this.mapToResponse(updatedDoc);
   }
-  async updateDocument(documentId: string, updateDocumentDto: UpdateDocumentDto, currentUser: any): Promise<DocumentResponse> {
+  async updateDocument(
+    documentId: string,
+    updateDocumentDto: UpdateDocumentDto,
+    currentUser: any,
+  ): Promise<DocumentResponse> {
     const doc = await this.documentModel.findById(documentId);
     if (!doc) {
       throw new NotFoundException('Document not found');
     }
 
-    //City Admin must be from same city 
+    //City Admin must be from same city
     if (currentUser.role === Role.CITY_ADMIN) {
       if (doc.city !== currentUser.city) {
-        throw new ForbiddenException('You can only manage documents from your own city');
+        throw new ForbiddenException(
+          'You can only manage documents from your own city',
+        );
       }
     }
 
-    // Route to correct action 
+    // Route to correct action
     switch (updateDocumentDto.action) {
       case 'approve': {
         if (currentUser.role === Role.DEPT_OFFICER) {
@@ -312,7 +395,9 @@ export class DocumentsService {
         }
         // Only DRAFT can be approved
         if (doc.approvalStatus !== DocumentApprovalStatus.DRAFT) {
-          throw new BadRequestException(`Cannot approve a document with status ${doc.approvalStatus}`);
+          throw new BadRequestException(
+            `Cannot approve a document with status ${doc.approvalStatus}`,
+          );
         }
         // Cannot approve archived document
         if (doc.isArchived) {
@@ -325,17 +410,27 @@ export class DocumentsService {
           userId: currentUser.userId,
           action: 'APPROVED',
           timestamp: new Date(),
-        } as any);
+        });
+        // Notify the uploader
+        await this.notificationService.create({
+          recipient: doc.uploadedBy.toString(),
+          type: NotificationType.DOCUMENT_UPLOADED,
+          title: `Document approved: ${doc.title}`,
+          body: `Your document has been approved.`,
+          link: `/documents/${doc._id}`,
+          priority: NotificationPriority.NORMAL,
+        });
         break;
       }
       case 'reject': {
-
         if (currentUser.role === Role.DEPT_OFFICER) {
           throw new ForbiddenException('Only City Admin can reject documents');
         }
         // Only DRAFT can be rejected
         if (doc.approvalStatus !== DocumentApprovalStatus.DRAFT) {
-          throw new BadRequestException(`Cannot reject a document with status ${doc.approvalStatus}`);
+          throw new BadRequestException(
+            `Cannot reject a document with status ${doc.approvalStatus}`,
+          );
         }
 
         // Cannot reject archived document
@@ -345,7 +440,9 @@ export class DocumentsService {
 
         // Rejection reason is required
         if (!updateDocumentDto.approvalNote) {
-          throw new BadRequestException('Rejection reason is required when rejecting a document');
+          throw new BadRequestException(
+            'Rejection reason is required when rejecting a document',
+          );
         }
         doc.approvalStatus = DocumentApprovalStatus.REJECTED;
         doc.approvedBy = null;
@@ -354,7 +451,16 @@ export class DocumentsService {
           userId: currentUser.userId,
           action: 'REJECTED',
           timestamp: new Date(),
-        } as any);
+        });
+        // Notify the uploader
+        await this.notificationService.create({
+          recipient: doc.uploadedBy.toString(),
+          type: NotificationType.DOCUMENT_UPLOADED,
+          title: `Document rejected: ${doc.title}`,
+          body: `Your document was rejected. Reason: ${updateDocumentDto.approvalNote}`,
+          link: `/documents/${doc._id}`,
+          priority: NotificationPriority.URGENT,
+        });
         break;
       }
       case 'archive': {
@@ -363,39 +469,46 @@ export class DocumentsService {
         }
         // Must be APPROVED to archive
         if (doc.approvalStatus !== DocumentApprovalStatus.APPROVED) {
-          throw new BadRequestException('Only approved documents can be archived');
+          throw new BadRequestException(
+            'Only approved documents can be archived',
+          );
         }
         // Already archived
         if (doc.isArchived) {
-          throw new BadRequestException(
-            'Document is already archived'
-          );
+          throw new BadRequestException('Document is already archived');
         }
         doc.isArchived = true;
         doc.activityLog.push({
           userId: currentUser.userId,
           action: 'ARCHIVED',
           timestamp: new Date(),
-        } as any);
+        });
         break;
       }
       case 'change-access': {
         // Cannot change access of archived document
         if (doc.isArchived) {
-          throw new BadRequestException('Cannot change access level of an archived document'
+          throw new BadRequestException(
+            'Cannot change access level of an archived document',
           );
         }
 
         // accessLevel required
         if (!updateDocumentDto.accessLevel) {
-          throw new BadRequestException('accessLevel is required for change-access action');
+          throw new BadRequestException(
+            'accessLevel is required for change-access action',
+          );
         }
 
         // Dept Officer can only change their own document
         if (currentUser.role === Role.DEPT_OFFICER) {
-          if (doc.city !== currentUser.city || doc.department !== currentUser.department
+          if (
+            doc.city !== currentUser.city ||
+            doc.department !== currentUser.department
           ) {
-            throw new ForbiddenException('You can only change access of your own department documents');
+            throw new ForbiddenException(
+              'You can only change access of your own department documents',
+            );
           }
         }
         doc.accessLevel = updateDocumentDto.accessLevel;
@@ -403,24 +516,34 @@ export class DocumentsService {
           userId: currentUser.userId,
           action: 'ACCESS_CHANGED',
           timestamp: new Date(),
-        } as any);
+        });
         break;
       }
       default: {
-        throw new BadRequestException(`Unknown action: ${updateDocumentDto.action}`);
+        throw new BadRequestException(
+          `Unknown action: ${updateDocumentDto.action}`,
+        );
       }
     }
     doc.markModified('activityLog');
     const updatedDoc = await doc.save();
     return this.mapToResponse(updatedDoc);
   }
-  async downloadDocument(documentId: string, currentUser: any): Promise<{ fileUrl: string; fileName: string; fileType: string; fileSize: number }> {
+  async downloadDocument(
+    documentId: string,
+    currentUser: any,
+  ): Promise<{
+    fileUrl: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+  }> {
     const doc = await this.documentModel.findById(documentId).lean();
     if (!doc) {
       throw new NotFoundException('Document not found');
     }
 
-    // Document must not be archived 
+    // Document must not be archived
     if (doc.isArchived) {
       throw new NotFoundException('Document not found');
     }
@@ -431,54 +554,57 @@ export class DocumentsService {
 
     // City Admin
     else if (currentUser.role === Role.CITY_ADMIN) {
-
       // Own city  always allowed
       if (doc.city === currentUser.city) {
         //their own city allowed and  Other city  check access level
       } else {
-        if (doc.accessLevel === AccessLevel.DEPARTMENT_ONLY || doc.accessLevel === AccessLevel.ADMINS_ONLY || doc.accessLevel === AccessLevel.OWN_CITY_ONLY) {
-          throw new ForbiddenException('You do not have permission to download this document');
+        if (
+          doc.accessLevel === AccessLevel.DEPARTMENT_ONLY ||
+          doc.accessLevel === AccessLevel.ADMINS_ONLY ||
+          doc.accessLevel === AccessLevel.OWN_CITY_ONLY
+        ) {
+          throw new ForbiddenException(
+            'You do not have permission to download this document',
+          );
         }
       }
-    }
-    else if (currentUser.role === Role.DEPT_OFFICER) {
+    } else if (currentUser.role === Role.DEPT_OFFICER) {
       // Own department  allowed
-      if (doc.city === currentUser.city && doc.department === currentUser.department) {
+      if (
+        doc.city === currentUser.city &&
+        doc.department === currentUser.department
+      ) {
         // Same city — PUBLIC, BOTH_CITIES, OWN_CITY_ONLY
-      } else if (doc.city === currentUser.city &&
-        (
-          doc.accessLevel === AccessLevel.PUBLIC ||
+      } else if (
+        doc.city === currentUser.city &&
+        (doc.accessLevel === AccessLevel.PUBLIC ||
           doc.accessLevel === AccessLevel.BOTH_CITIES ||
-          doc.accessLevel === AccessLevel.OWN_CITY_ONLY
-        )
+          doc.accessLevel === AccessLevel.OWN_CITY_ONLY)
       ) {
         // Other city  only PUBLIC and BOTH_CITIES
       } else if (
         doc.city !== currentUser.city &&
-        (
-          doc.accessLevel === AccessLevel.PUBLIC ||
-          doc.accessLevel === AccessLevel.BOTH_CITIES
-        )
+        (doc.accessLevel === AccessLevel.PUBLIC ||
+          doc.accessLevel === AccessLevel.BOTH_CITIES)
       ) {
         // Everything else  blocked
       } else {
-        throw new ForbiddenException('You do not have permission to download this document');
+        throw new ForbiddenException(
+          'You do not have permission to download this document',
+        );
       }
     }
 
-    //Record DOWNLOADED in activityLog 
-    await this.documentModel.findByIdAndUpdate(
-      documentId,
-      {
-        $push: {
-          activityLog: {
-            userId: currentUser.userId,
-            action: 'DOWNLOADED',
-            timestamp: new Date(),
-          }
-        }
-      }
-    );
+    //Record DOWNLOADED in activityLog
+    await this.documentModel.findByIdAndUpdate(documentId, {
+      $push: {
+        activityLog: {
+          userId: currentUser.userId,
+          action: 'DOWNLOADED',
+          timestamp: new Date(),
+        },
+      },
+    });
     return {
       fileUrl: doc.fileUrl,
       fileName: doc.fileName,

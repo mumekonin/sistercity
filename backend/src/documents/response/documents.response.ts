@@ -1,4 +1,9 @@
-import { DocumentCategory, AccessLevel, DocumentApprovalStatus, City } from '../../common/enum/enum';
+import {
+  DocumentCategory,
+  AccessLevel,
+  DocumentApprovalStatus,
+  City,
+} from '../../common/enum/enum';
 export class PreviousVersionResponse {
   fileUrl!: string;
   fileName!: string;

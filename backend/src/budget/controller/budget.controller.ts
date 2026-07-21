@@ -1,4 +1,15 @@
-import { Controller, Post, Get, Patch, Body, Param, Req, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { DbRolesGuard } from 'src/common/guards/roles.guard';
@@ -10,9 +21,7 @@ import { BudgetService } from '../service/budget.service';
 
 @Controller('/budgets')
 export class BudgetController {
-  constructor(
-    private readonly budgetService: BudgetService,
-  ) { }
+  constructor(private readonly budgetService: BudgetService) {}
 
   // IMPORTANT: /summary must come BEFORE /:projectId to avoid
   // "summary" being parsed as a MongoDB ObjectId param
@@ -33,7 +42,12 @@ export class BudgetController {
     @Body() createExpenditureDto: CreateExpenditureDto,
     @Req() req: any,
   ) {
-    return this.budgetService.recordExpenditure(projectId, createExpenditureDto, file, req.user);
+    return this.budgetService.recordExpenditure(
+      projectId,
+      createExpenditureDto,
+      file,
+      req.user,
+    );
   }
 
   @Get('/:projectId')
@@ -54,6 +68,11 @@ export class BudgetController {
     @Body() updateExpenditureDto: UpdateExpenditureDto,
     @Req() req: any,
   ) {
-    return this.budgetService.updateExpenditure(projectId, eid, updateExpenditureDto, req.user);
+    return this.budgetService.updateExpenditure(
+      projectId,
+      eid,
+      updateExpenditureDto,
+      req.user,
+    );
   }
 }

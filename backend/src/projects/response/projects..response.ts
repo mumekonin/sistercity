@@ -1,4 +1,14 @@
-import {City,Priority,ProjectStatus,MilestoneStatus,TaskStatus,TaskPriority,IssueStatus,IssueSeverity,Responsible,} from '../../common/enum/enum';
+import {
+  City,
+  Priority,
+  ProjectStatus,
+  MilestoneStatus,
+  TaskStatus,
+  TaskPriority,
+  IssueStatus,
+  IssueSeverity,
+  Responsible,
+} from '../../common/enum/enum';
 
 export interface MilestoneResponse {
   id: string;
@@ -15,7 +25,7 @@ export interface TaskResponse {
   id: string;
   title: string;
   description: string;
-  assignedTo: string;        
+  assignedTo: string;
   assignedCity: City;
   priority: TaskPriority;
   dueDate: Date;
@@ -28,7 +38,7 @@ export interface IssueResponse {
   description: string;
   severity: IssueSeverity;
   affectedCity: Responsible;
-  raisedBy: string;       
+  raisedBy: string;
   raisedAt: Date;
   status: IssueStatus;
   resolution: string | null;
@@ -37,7 +47,7 @@ export interface IssueResponse {
 
 export interface CityAssignmentResponse {
   department: string;
-  focalPerson: string;       
+  focalPerson: string;
 }
 
 export interface ProjectResponse {
@@ -46,7 +56,7 @@ export interface ProjectResponse {
   description: string;
   expectedOutcome: string;
   proposedBy: City;
-  proposedByUser: string;    
+  proposedByUser: string;
   priority: Priority;
   status: ProjectStatus;
   rejectionReason: string | null;
