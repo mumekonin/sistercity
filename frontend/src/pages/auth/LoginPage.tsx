@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/auth.store';
 
@@ -72,6 +72,13 @@ export default function LoginPage() {
       <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-8">
         <div className="w-full max-w-md">
 
+          <Link to="/" className="inline-flex items-center gap-2 text-sm text-blue-500 hover:text-blue-700 font-medium mb-8 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Website
+          </Link>
+
           <h2 className="text-3xl font-bold text-[#1a4a8a] mb-2">
             Sign in to your account
           </h2>
@@ -121,10 +128,10 @@ export default function LoginPage() {
                 <label className="block text-sm font-medium text-[#1a4a8a]">
                   Password
                 </label>
-                <a href="/forgot-password"
+                <Link to="/forgot-password"
                   className="text-sm text-blue-500 hover:text-blue-600 transition">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

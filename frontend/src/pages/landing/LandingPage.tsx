@@ -20,6 +20,7 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true);
   const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useThemeStore();
 
   useEffect(() => {
@@ -77,18 +78,56 @@ export default function LandingPage() {
               >
                 {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
-              <Link to="/login" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
+              <Link to="/login" className="hidden sm:inline text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
                 Sign In
               </Link>
               <Link
                 to="/dashboard"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-md hover:shadow-lg flex items-center"
+                className="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-md hover:shadow-lg items-center"
               >
                 Dashboard <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
+              {/* Mobile Menu Toggle */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle menu"
+                className="md:hidden p-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isMobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Navigation Dropdown */}
+        {isMobileMenuOpen && (
+          <nav className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl absolute w-full left-0 shadow-xl transition-all duration-300">
+            <div className="flex flex-col p-4 space-y-4">
+              <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium px-2 py-1">About Us</a>
+              <a href="#cities" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium px-2 py-1">City Profiles</a>
+              <a href="#events" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium px-2 py-1">Completed Events</a>
+              <a href="#news" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium px-2 py-1">Latest News</a>
+              <div className="pt-4 mt-2 border-t border-slate-200 dark:border-slate-800 flex flex-col space-y-3">
+                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-center text-slate-600 dark:text-slate-300 hover:text-blue-600 font-medium py-2">
+                  Sign In
+                </Link>
+                <Link
+                  to="/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-full font-medium transition-all shadow-md flex items-center justify-center"
+                >
+                  Dashboard <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </nav>
+        )}
       </header>
 
       {/* ── Hero Section ── */}
