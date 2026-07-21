@@ -380,18 +380,18 @@ export default function MessagesPage() {
           onClose={() => setShowNewMessage(false)}
           onSent={(msg) => {
             const listItem: MessageListItem = {
-              id:               msg.id,
+              id:msg.id,
               referenceNumber:  msg.referenceNumber,
-              threadId:         msg.threadId,
-              subject:          msg.subject,
-              messageType:      msg.messageType,
-              priority:         msg.priority,
-              from:             msg.from,
-              to:               msg.to,
-              status:           msg.status,
-              isEscalated:      msg.isEscalated,
+              threadId:msg.threadId,
+              subject:msg.subject,
+              messageType:msg.messageType,
+              priority:msg.priority,
+              from:msg.from,
+              to:msg.to,
+              status:msg.status,
+              isEscalated:msg.isEscalated,
               responseDeadline: msg.responseDeadline,
-              createdAt:        msg.createdAt,
+              createdAt:msg.createdAt,
             };
             setMessages((prev) => [listItem, ...prev]);
             setShowNewMessage(false);

@@ -60,8 +60,8 @@ export default function BudgetPage() {
   const totalSpent = summaries.reduce((sum, s) => sum + s.spentTotal, 0);
   const totalRemaining = summaries.reduce((sum, s) => sum + s.remainingTotal, 0);
   const overallPercentage = totalPlanned > 0
-    ? Math.round((totalSpent / totalPlanned) * 100)
-    : 0;
+    ? Math.max(0, Math.round((totalSpent / totalPlanned) * 100))
+    : totalSpent > 0 ? 100 : 0;
 
   const equipmentStatusConfig: Record<string, { label: string; className: string }> = {
     AVAILABLE: { label: 'Available', className: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' },

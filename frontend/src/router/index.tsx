@@ -26,6 +26,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!token) return <Navigate to="/login" />;
   return <>{children}</>;
 }
+
+// Smart fallback: authenticated → dashboard, unauthenticated → login
+function FallbackRedirect() {
+  const { token } = useAuthStore();
+  return <Navigate to={token ? '/dashboard' : '/login'} replace />;
+}
 export default function Router() {
   return (
     <BrowserRouter>
@@ -58,10 +64,9 @@ export default function Router() {
           <Route path="/search" element={<SearchPage />} />
         </Route>
         {/* Fallback */}
-        <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="*" element={<Navigate to="/login" />} />
+        <Route path="*" element={<FallbackRedirect />} />
       </Routes>
     </BrowserRouter>
   );

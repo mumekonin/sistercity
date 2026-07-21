@@ -28,6 +28,16 @@ const priorityConfig: Record<string, { label: string; className: string; dot: st
 
 type FilterType = 'all' | 'unread' | 'alerts';
 
+// Top-level routes that exist in the router
+const KNOWN_ROUTES = [
+  '/dashboard', '/cities', '/projects', '/documents',
+  '/messages', '/events', '/budget', '/news',
+  '/notifications', '/reports', '/admin', '/settings', '/search',
+];
+
+// Routes that have a detail page (/:id sub-route defined in the router)
+const ROUTES_WITH_DETAIL = ['/projects'];
+
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -87,7 +97,37 @@ export default function NotificationsPage() {
       } catch {}
     }
     if (notification.link) {
-      navigate(notification.link);
+      // Parse the link to get just the pathname (ignore query/hash for routing check)
+      let target = notification.link;
+      try {
+        // Build a full URL so URL() can parse it properly
+        const parsed = new URL(notification.link, window.location.origin);
+        const pathname = parsed.pathname;
+        // Find the matching top-level route
+        const topLevelMatch = KNOWN_ROUTES.find(
+          (r) => pathname === r || pathname.startsWith(r + '/')
+        );
+        
+        if (topLevelMatch) {
+          if (pathname === topLevelMatch) {
+            // Exact match (e.g. /messages)
+            target = parsed.pathname + parsed.search;
+          } else if (ROUTES_WITH_DETAIL.includes(topLevelMatch)) {
+            // Has a detail page (e.g. /projects/123)
+            target = parsed.pathname + parsed.search;
+          } else {
+            // No detail page (e.g. /documents/123), strip to top-level list page
+            target = topLevelMatch + parsed.search;
+          }
+        } else {
+          // Completely unknown, fallback to dashboard
+          target = '/dashboard';
+        }
+      } catch {
+        // If parsing fails, navigate to dashboard
+        target = '/dashboard';
+      }
+      navigate(target);
     }
   };
 
