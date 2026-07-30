@@ -79,6 +79,12 @@ export class Message extends Document {
   @Prop({ required: true, enum: MessageStatus, default: MessageStatus.SENT })
   status!: MessageStatus;
 
+  // Read state is per recipient: a message can be addressed to a whole
+  // department, so a single flag cannot represent who has actually seen it.
+  // `status` / `readAt` stay as the coarse "first opened" markers shown to the sender.
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  readBy!: Types.ObjectId[];
+
   @Prop({ default: null, type: Date })
   readAt!: Date | null;
   @Prop({ required: true })

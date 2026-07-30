@@ -6,8 +6,9 @@ import StatusBadge from '../../components/shared/StatusBadge';
 import AccessBadge from '../../components/shared/AccessBadge';
 import UploadDocumentModal from './UploadDocumentModal';
 import DocumentDetailModal from './DocumentDetailModal';
+import { DocumentCategory } from '../../types/enums';
 
-const categories = ['All', 'AGREEMENT', 'FINANCIAL', 'REPORT', 'MINUTES', 'LOGISTICS', 'LEGAL', 'TECHNICAL', 'OTHER'];
+const categories = ['All', ...Object.values(DocumentCategory)];
 
 export default function DocumentsPage() {
   const { user } = useAuthStore();

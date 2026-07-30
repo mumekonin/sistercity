@@ -74,6 +74,8 @@ export interface Message {
   attachments: Attachment[];
   relatedProject: string | null;
   status: MessageStatus;
+  /** Whether the current user has read this message. */
+  isRead: boolean;
   readAt: Date | null;
   responseDeadline: Date;
   isEscalated: boolean;
@@ -94,6 +96,8 @@ export interface MessageListItem {
   from: MessageFrom;
   to: MessageTo;
   status: MessageStatus;
+  /** Whether the current user has read this message. */
+  isRead: boolean;
   isEscalated: boolean;
   responseDeadline: Date;
   createdAt: Date;

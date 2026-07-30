@@ -232,7 +232,7 @@ export default function MessagesPage() {
           ) : (
             <ul>
               {filtered.map((message) => {
-                const isUnread = message.status === 'SENT';
+                const isUnread = !message.isRead;
                 const over    = isOverdue(message.responseDeadline);
                 const pCfg    = priorityConfig[message.priority] ?? priorityConfig.NORMAL;
                 const isSelected = selectedId === message.id;
@@ -389,6 +389,7 @@ export default function MessagesPage() {
               from:msg.from,
               to:msg.to,
               status:msg.status,
+              isRead: msg.isRead,
               isEscalated:msg.isEscalated,
               responseDeadline: msg.responseDeadline,
               createdAt:msg.createdAt,

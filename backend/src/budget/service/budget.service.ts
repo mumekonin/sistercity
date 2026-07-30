@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ConflictException,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
@@ -91,18 +92,34 @@ export class BudgetService {
     if (createExpenditureDto.date > new Date()) {
       throw new BadRequestException('Expenditure date cannot be in the future');
     }
-    let budget = await this.budgetModel.findOne({ project: projectId });
+    const existing = await this.budgetModel.findOne({ project: projectId });
 
-    if (!budget) {
-      budget = new this.budgetModel({
-        project: projectId,
-        spentAdama: 0,
-        spentAurora: 0,
-        spentTotal: 0,
-        expenditures: [],
-      });
+    const isAdama = currentUser.city === City.ADAMA;
+    const allocated = isAdama ? project.budgetAdama : project.budgetAurora;
+    const spent = isAdama
+      ? (existing?.spentAdama ?? 0)
+      : (existing?.spentAurora ?? 0);
+
+    // Approved spending alone understates what the budget owes: expenditures
+    // already awaiting approval are committed money too, and without counting
+    // them a department can queue up more than it can ever have approved.
+    const pending = (existing?.expenditures ?? [])
+      .filter(
+        (e: any) =>
+          e.city === currentUser.city &&
+          e.status === ExpenditureStatus.PENDING,
+      )
+      .reduce((sum: number, e: any) => sum + e.amount, 0);
+
+    if (spent + pending + createExpenditureDto.amount > allocated) {
+      const available = allocated - spent - pending;
+      throw new BadRequestException(
+        `This would exceed your city's budget. Allocated ${allocated}, spent ${spent}, ` +
+          `awaiting approval ${pending} — only ${available} is still available.`,
+      );
     }
-    budget.expenditures.push({
+
+    const expenditure = {
       city: currentUser.city,
       category: createExpenditureDto.category,
       description: createExpenditureDto.description,
@@ -114,12 +131,40 @@ export class BudgetService {
       approvedBy: null,
       rejectionReason: null,
       approvedAt: null,
-    });
+    };
 
-    //  Mark modified and save
-    budget.markModified('expenditures');
-    const savedBudget = await budget.save();
+    const savedBudget = await this.upsertExpenditure(projectId, expenditure);
     return this.mapToResponse(savedBudget, project);
+  }
+
+  // `project` is unique on Budget, so building the document in memory when none
+  // exists lets two concurrent first expenditures both insert and one fail with a
+  // duplicate key error. An upsert collapses that to a single retryable case.
+  private async upsertExpenditure(
+    projectId: string,
+    expenditure: Record<string, any>,
+  ): Promise<any> {
+    const update = {
+      $push: { expenditures: expenditure },
+      $setOnInsert: { spentAdama: 0, spentAurora: 0, spentTotal: 0 },
+    };
+
+    try {
+      return await this.budgetModel.findOneAndUpdate(
+        { project: projectId },
+        update as any,
+        { new: true, upsert: true },
+      );
+    } catch (error: any) {
+      if (error?.code !== 11000) throw error;
+      // Another request inserted the budget between our lookup and insert; the
+      // document now exists, so the same update succeeds as a plain push.
+      return await this.budgetModel.findOneAndUpdate(
+        { project: projectId },
+        { $push: { expenditures: expenditure } } as any,
+        { new: true },
+      );
+    }
   }
   private mapToResponse(budget: any, project: any): BudgetResponse {
     return {
@@ -259,30 +304,56 @@ export class BudgetService {
         "You cannot approve your own city's expenditures. The partner city must approve them.",
       );
     }
+    // The checks above ran against a snapshot, so the mutation itself is applied
+    // as one conditional update: the expenditure must still be PENDING and the
+    // city must still have room in its allocation. Otherwise two approvals racing
+    // each other could both pass the balance check and overspend the budget.
+    const stillPending = {
+      project: projectId,
+      expenditures: {
+        $elemMatch: {
+          _id: expenditureId,
+          status: ExpenditureStatus.PENDING,
+        },
+      },
+    };
+
+    let updatedBudget: Budget | null = null;
+
     switch (updateExpenditureDto.action) {
       case 'approve': {
-        budget.expenditures[expenditureIndex].status =
-          ExpenditureStatus.APPROVED;
-        budget.expenditures[expenditureIndex].approvedBy = currentUser.userId;
-        budget.expenditures[expenditureIndex].approvedAt = new Date();
-        // Update spent totals only when approved, checking against planned budget
-        if (expenditure.city === City.ADAMA) {
-          if (budget.spentAdama + expenditure.amount > project.budgetAdama) {
-            throw new BadRequestException(
-              'Approval denied: This expenditure exceeds the allocated budget for Adama.',
-            );
-          }
-          budget.spentAdama += expenditure.amount;
+        const isAdama = expenditure.city === City.ADAMA;
+        const spentField = isAdama ? 'spentAdama' : 'spentAurora';
+        const allocated = isAdama ? project.budgetAdama : project.budgetAurora;
+        const spent = isAdama ? budget.spentAdama : budget.spentAurora;
+
+        if (spent + expenditure.amount > allocated) {
+          throw new BadRequestException(
+            `Approval denied: This expenditure exceeds the allocated budget for ${
+              isAdama ? 'Adama' : 'Aurora'
+            }.`,
+          );
         }
-        if (expenditure.city === City.AURORA) {
-          if (budget.spentAurora + expenditure.amount > project.budgetAurora) {
-            throw new BadRequestException(
-              'Approval denied: This expenditure exceeds the allocated budget for Aurora.',
-            );
-          }
-          budget.spentAurora += expenditure.amount;
-        }
-        budget.spentTotal = budget.spentAdama + budget.spentAurora;
+
+        updatedBudget = await this.budgetModel.findOneAndUpdate(
+          {
+            ...stillPending,
+            // Re-asserted server-side so a concurrent approval cannot slip past
+            [spentField]: { $lte: allocated - expenditure.amount },
+          },
+          {
+            $set: {
+              'expenditures.$.status': ExpenditureStatus.APPROVED,
+              'expenditures.$.approvedBy': currentUser.userId,
+              'expenditures.$.approvedAt': new Date(),
+            },
+            $inc: {
+              [spentField]: expenditure.amount,
+              spentTotal: expenditure.amount,
+            },
+          },
+          { new: true },
+        );
         break;
       }
       case 'reject': {
@@ -292,10 +363,18 @@ export class BudgetService {
             'Rejection reason is required when rejecting an expenditure',
           );
         }
-        budget.expenditures[expenditureIndex].status =
-          ExpenditureStatus.REJECTED;
-        budget.expenditures[expenditureIndex].rejectionReason =
-          updateExpenditureDto.rejectionReason;
+
+        updatedBudget = await this.budgetModel.findOneAndUpdate(
+          stillPending,
+          {
+            $set: {
+              'expenditures.$.status': ExpenditureStatus.REJECTED,
+              'expenditures.$.rejectionReason':
+                updateExpenditureDto.rejectionReason,
+            },
+          },
+          { new: true },
+        );
         break;
       }
       default: {
@@ -304,8 +383,13 @@ export class BudgetService {
         );
       }
     }
-    budget.markModified('expenditures');
-    const updatedBudget = await budget.save();
+
+    if (!updatedBudget) {
+      throw new ConflictException(
+        'This expenditure was already updated by someone else, or the remaining budget changed. Please reload and try again.',
+      );
+    }
+
     return this.mapToResponse(updatedBudget, project);
   }
   async getBudgetSummary(currentUser: any): Promise<BudgetSummaryResponse[]> {

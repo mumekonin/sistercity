@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  HttpException,
   NotFoundException,
   ForbiddenException,
   UnauthorizedException,
@@ -123,6 +124,9 @@ export class UserService {
       user.failedLoginAttempts += 1;
       if (user.failedLoginAttempts >= 5) {
         user.lockUntil = new Date(now.getTime() + 15 * 60 * 1000);
+        // Otherwise an existing refresh token would keep minting access tokens
+        // for an account that is locked out of login.
+        user.refreshToken = null;
         await user.save();
         throw new UnauthorizedException(
           'Too many failed attempts. Your account is locked for 15 minutes.',
@@ -235,8 +239,32 @@ export class UserService {
       );
     }
 
+    if (
+      targetUser.role === Role.SUPER_ADMIN &&
+      currentUser.role !== Role.SUPER_ADMIN
+    ) {
+      throw new ForbiddenException('You cannot modify a Super Admin account');
+    }
+
+    // A city admin passes the ownership check above on the target's *current*
+    // city, so without this they could reassign the user to the other city.
+    if (
+      currentUser.role === Role.CITY_ADMIN &&
+      updateUserDto.city &&
+      updateUserDto.city !== currentUser.city
+    ) {
+      throw new ForbiddenException(
+        'You can only assign users to your own city',
+      );
+    }
+
     if (updateUserDto.role && currentUser.role !== Role.SUPER_ADMIN) {
       throw new ForbiddenException('Only SUPER_ADMIN can change roles');
+    }
+
+    // Mirrors createUser: promotion to SUPER_ADMIN is never allowed via the API.
+    if (updateUserDto.role === Role.SUPER_ADMIN) {
+      throw new ForbiddenException('Users cannot be promoted to Super Admin');
     }
 
     if (updateUserDto.fullName) {
@@ -332,6 +360,11 @@ export class UserService {
       if (user.refreshToken !== refreshToken) {
         throw new UnauthorizedException('Invalid or expired refresh token.');
       }
+      if (user.lockUntil && user.lockUntil > new Date()) {
+        throw new UnauthorizedException(
+          'Your account is locked. Please try again later.',
+        );
+      }
       const newJwtPayload = {
         userId: user._id.toString(),
         role: user.role,
@@ -350,10 +383,21 @@ export class UserService {
         refreshToken: newRefreshToken,
       };
     } catch (error) {
+      // Only JWT verification failures should be flattened into a generic
+      // message; deliberate rejections above already say something useful.
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new UnauthorizedException('Invalid or expired session.');
     }
   }
   async forgotPassword(email: string): Promise<{ message: string }> {
+    // Mongoose strips undefined filter values, so an absent email would turn
+    // this into findOne({}) and match an arbitrary account.
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+
     const user = await this.userModel.findOne({ email });
     if (!user) {
       // don't reveal if email exists
@@ -398,6 +442,11 @@ export class UserService {
     user.password = await bcrypt.hash(newPassword, 10);
     user.resetToken = null;
     user.resetTokenExpiry = null;
+    // A reset is the recovery path out of a lockout, and it must also invalidate
+    // any session established with the old password.
+    user.lockUntil = null;
+    user.failedLoginAttempts = 0;
+    user.refreshToken = null;
     await user.save();
 
     return { message: 'Password reset successfully' };

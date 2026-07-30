@@ -200,17 +200,16 @@ export class ReportsService {
   // Private — Build City Filter
   private buildCityFilter(city: ReportCity): any {
     if (city === ReportCity.BOTH) return {};
+
+    // A city belongs in its report either because it proposed the project or
+    // because it holds an assignment on it — the two are independent.
+    const isAdama = city === ReportCity.ADAMA;
+    const assignmentPath = isAdama ? 'adama.department' : 'aurora.department';
+
     return {
       $or: [
-        { proposedBy: city },
-        {
-          'adama.department': { $exists: true, $ne: null },
-          proposedBy: city === ReportCity.ADAMA ? City.ADAMA : City.AURORA,
-        },
-        {
-          'aurora.department': { $exists: true, $ne: null },
-          proposedBy: city === ReportCity.AURORA ? City.AURORA : City.ADAMA,
-        },
+        { proposedBy: isAdama ? City.ADAMA : City.AURORA },
+        { [assignmentPath]: { $exists: true, $ne: null } },
       ],
     };
   }
@@ -335,8 +334,33 @@ export class ReportsService {
       .find({ ...cityFilter, createdAt: { $gte: dateFrom, $lte: dateTo } })
       .lean();
 
-    const sent = messages.filter((m: any) => m.from.city === city).length;
-    const received = messages.filter((m: any) => m.to.city === city).length;
+    // `city` is ReportCity, so for a partnership-wide report it is BOTH and never
+    // equals a message's city — comparing directly reported zero sent and received.
+    const countSent = (c: City) =>
+      messages.filter((m: any) => m.from.city === c).length;
+    const countReceived = (c: City) =>
+      messages.filter((m: any) => m.to.city === c).length;
+
+    const byCity = {
+      [City.ADAMA]: {
+        sent: countSent(City.ADAMA),
+        received: countReceived(City.ADAMA),
+      },
+      [City.AURORA]: {
+        sent: countSent(City.AURORA),
+        received: countReceived(City.AURORA),
+      },
+    };
+
+    const isBoth = city === ReportCity.BOTH;
+    // Every message in a joint report was sent by one city and received by the
+    // other, so the totals coincide; `byCity` carries the meaningful split.
+    const sent = isBoth
+      ? messages.length
+      : countSent(city as unknown as City);
+    const received = isBoth
+      ? messages.length
+      : countReceived(city as unknown as City);
     const overdue = messages.filter(
       (m: any) =>
         m.responseDeadline < new Date() &&
@@ -364,6 +388,7 @@ export class ReportsService {
       totalMessages: messages.length,
       sent,
       received,
+      byCity,
       overdue,
       avgResponseDays,
       byType,

@@ -119,8 +119,10 @@ export class EventService {
 
     if (month && year) {
       const startOfMonth = new Date(year, month - 1, 1);
-      const endOfMonth = new Date(year, month, 0);
-      filter.startDate = { $gte: startOfMonth, $lte: endOfMonth };
+      // Exclusive upper bound: `new Date(year, month, 0)` is midnight on the last
+      // day, which would drop everything scheduled during that final day.
+      const startOfNextMonth = new Date(year, month, 1);
+      filter.startDate = { $gte: startOfMonth, $lt: startOfNextMonth };
     }
 
     // PUBLIC or no login

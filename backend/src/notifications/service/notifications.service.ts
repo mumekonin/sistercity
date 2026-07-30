@@ -212,7 +212,7 @@ export class NotificationService {
         }),
         this.messageModel.countDocuments({
           'to.city': currentUser.city,
-          status: MessageStatus.SENT,
+          readBy: { $ne: new Types.ObjectId(currentUser.userId) },
         }),
         this.eventModel.countDocuments({
           $or: [
@@ -271,7 +271,7 @@ export class NotificationService {
         this.messageModel.countDocuments({
           'to.city': currentUser.city,
           'to.department': currentUser.department,
-          status: MessageStatus.SENT,
+          readBy: { $ne: new Types.ObjectId(currentUser.userId) },
         }),
         this.notificationModel.countDocuments({
           recipient: new Types.ObjectId(currentUser.userId),
