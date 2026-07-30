@@ -85,10 +85,6 @@ export class BudgetService {
         'Receipt file is required for expenditure recording',
       );
     }
-    const uploadedFile = await this.cloudinaryService.uploadFile(
-      file,
-      'sister-city/receipts',
-    );
     if (createExpenditureDto.date > new Date()) {
       throw new BadRequestException('Expenditure date cannot be in the future');
     }
@@ -118,6 +114,13 @@ export class BudgetService {
           `awaiting approval ${pending} — only ${available} is still available.`,
       );
     }
+
+    // Uploaded only once the request is known to be acceptable, so a rejected
+    // expenditure doesn't strand a receipt in Cloudinary with nothing pointing at it.
+    const uploadedFile = await this.cloudinaryService.uploadFile(
+      file,
+      'sister-city/receipts',
+    );
 
     const expenditure = {
       city: currentUser.city,

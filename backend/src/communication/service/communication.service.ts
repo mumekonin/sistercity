@@ -262,7 +262,7 @@ export class MessageService {
         filter = {
           'to.city': currentUser.city,
           'to.department': currentUser.department,
-          readBy: { $ne: currentUser.userId },
+          readBy: { $ne: new Types.ObjectId(currentUser.userId) },
           $or: this.addressedToUser(currentUser),
           isArchived: { $in: [false, null, undefined] },
         };
@@ -346,7 +346,9 @@ export class MessageService {
     ) {
       const firstRead = message.status === MessageStatus.SENT;
       await this.messageModel.findByIdAndUpdate(id, {
-        $addToSet: { readBy: currentUser.userId },
+        // Stored as an ObjectId to match how the dashboard counts unread mail;
+        // the schema's reference paths are Mixed, so nothing casts for us.
+        $addToSet: { readBy: new Types.ObjectId(currentUser.userId) },
         // `status` / `readAt` record the first time anyone opened it, which is
         // what the sender's "Read" indicator reports.
         ...(firstRead
