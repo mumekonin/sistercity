@@ -44,6 +44,7 @@ export class EmailService {
       this.logger.error(
         `Failed to send password reset email to ${to}: ${error.message}`,
       );
+      throw error;
     }
   }
 }

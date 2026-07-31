@@ -94,7 +94,8 @@ export class UserService {
   async loginUser(loginDto: LoginUserDto) {
     const user = await this.userModel.findOne({ email: loginDto.email });
     if (!user) {
-      throw new NotFoundException('No account found with this email');
+      // Same message as a wrong password so login cannot be used to enumerate emails.
+      throw new UnauthorizedException('Invalid email or password');
     }
     if (!user.isActive) {
       throw new UnauthorizedException(
@@ -133,10 +134,7 @@ export class UserService {
         );
       }
       await user.save();
-      const attemptsLeft = 5 - user.failedLoginAttempts;
-      throw new BadRequestException(
-        `Invalid password. ${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining before account is locked.`,
-      );
+      throw new UnauthorizedException('Invalid email or password');
     }
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
@@ -201,7 +199,9 @@ export class UserService {
         .select('-password')
         .lean();
     }
-    if (!users) return [];
+    if (!users) {
+      throw new ForbiddenException('You do not have permission to list users');
+    }
     const usersResponse: UserResponse[] = users.map((user) => {
       return {
         id: user._id.toString(),
@@ -213,7 +213,7 @@ export class UserService {
         jobTitle: user.jobTitle,
         phone: user.phone,
         isActive: user.isActive,
-        isLocked: user.isLocked,
+        isLocked: !!(user.lockUntil && user.lockUntil > new Date()),
         failedLoginAttempts: user.failedLoginAttempts,
         lastLogin: user.lastLogin,
         createdAt: user.createdAt,
@@ -271,6 +271,13 @@ export class UserService {
       targetUser.fullName = updateUserDto.fullName;
     }
     if (updateUserDto.email) {
+      const emailTaken = await this.userModel.findOne({
+        email: updateUserDto.email,
+        _id: { $ne: id },
+      });
+      if (emailTaken) {
+        throw new BadRequestException('A user already exists with this email');
+      }
       targetUser.email = updateUserDto.email;
     }
     if (updateUserDto.jobTitle) {
@@ -412,13 +419,19 @@ export class UserService {
       .digest('hex');
     const expiry = new Date(Date.now() + 3600000);
 
-    // save hashed token to user
     user.resetToken = hashedToken;
     user.resetTokenExpiry = expiry;
     await user.save();
 
-    // send email with reset link containing the plain token
-    await this.emailService.sendPasswordResetEmail(user.email, plainToken);
+    try {
+      await this.emailService.sendPasswordResetEmail(user.email, plainToken);
+    } catch (error) {
+      // Do not leave a usable reset token if delivery failed.
+      user.resetToken = null;
+      user.resetTokenExpiry = null;
+      await user.save();
+      throw error;
+    }
 
     return {
       message: 'If this email exists, a reset link has been sent',

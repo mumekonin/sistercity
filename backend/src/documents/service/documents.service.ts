@@ -492,6 +492,17 @@ export class DocumentsService {
           action: 'ARCHIVED',
           timestamp: new Date(),
         });
+        // Archived documents are no longer downloadable — purge storage for the
+        // current file and every superseded version so blobs do not accumulate.
+        const urlsToDelete = [
+          doc.fileUrl,
+          ...doc.previousVersions.map((v: any) => v.fileUrl),
+        ].filter(Boolean);
+        await Promise.all(
+          urlsToDelete.map((url) =>
+            this.cloudinaryService.deleteFile(url).catch(() => undefined),
+          ),
+        );
         break;
       }
       case 'change-access': {

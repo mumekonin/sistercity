@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 import {
   City,
   ExpenditureStatus,
@@ -19,7 +19,7 @@ class Expenditure {
   date!: Date;
   @Prop({ required: true })
   receiptUrl!: string;
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   recordedBy!: Types.ObjectId;
   @Prop({
     required: true,
@@ -27,7 +27,7 @@ class Expenditure {
     default: ExpenditureStatus.PENDING,
   })
   status!: ExpenditureStatus;
-  @Prop({ default: null, type: Types.ObjectId, ref: 'User' })
+  @Prop({ default: null, type: SchemaTypes.ObjectId, ref: 'User' })
   approvedBy!: Types.ObjectId | null;
   @Prop({ default: null, type: String })
   rejectionReason!: string | null;
@@ -38,7 +38,7 @@ const ExpenditureSchema = SchemaFactory.createForClass(Expenditure);
 
 @Schema({ timestamps: true })
 export class Budget extends Document {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Project', unique: true })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'Project', unique: true })
   project!: Types.ObjectId;
   @Prop({ default: 0 })
   spentAdama!: number;

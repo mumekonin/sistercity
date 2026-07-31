@@ -26,6 +26,7 @@ import {
   ProjectStatus,
   Role,
   MilestoneStatus,
+  Responsible,
   TaskStatus,
   IssueStatus,
   NotificationType,
@@ -336,9 +337,15 @@ export class ProjectsService {
           );
         }
 
+        if (!focalPerson.isActive) {
+          throw new BadRequestException(
+            'Cannot assign a deactivated user as focal person',
+          );
+        }
+
         // Adama assigns their side
         if (currentUser.city === City.ADAMA) {
-          if (project.adama !== null) {
+          if (project.adama != null) {
             throw new BadRequestException(
               'Adama has already assigned their department',
             );
@@ -351,7 +358,7 @@ export class ProjectsService {
 
         // Aurora assigns their side
         if (currentUser.city === City.AURORA) {
-          if (project.aurora !== null) {
+          if (project.aurora != null) {
             throw new BadRequestException(
               'Aurora has already assigned their department',
             );
@@ -363,7 +370,7 @@ export class ProjectsService {
         }
 
         // Both assigned — auto move to PLANNED
-        if (project.adama !== null && project.aurora !== null) {
+        if (project.adama != null && project.aurora != null) {
           project.status = ProjectStatus.PLANNED;
         }
 
@@ -429,8 +436,11 @@ export class ProjectsService {
           project.auroraPlanned = true;
         }
 
-        // Recalculate total
-        project.budgetTotal = project.budgetAdama + project.budgetAurora;
+        // Only publish a combined total once both cities have planned; otherwise
+        // a half-finished plan looks like a final budget in lists and reports.
+        if (project.adamaPlanned && project.auroraPlanned) {
+          project.budgetTotal = project.budgetAdama + project.budgetAurora;
+        }
 
         // The schedule is shared, not per city. Whoever plans first establishes
         // it; the second city must submit the same dates rather than silently
@@ -539,6 +549,17 @@ export class ProjectsService {
           project.completedBy.includes(City.ADAMA) &&
           project.completedBy.includes(City.AURORA)
         ) {
+          const openMilestones = project.milestones.filter(
+            (m: any) => m.status !== MilestoneStatus.COMPLETED,
+          );
+          if (
+            project.milestones.length > 0 &&
+            (project.progressPercent !== 100 || openMilestones.length > 0)
+          ) {
+            throw new BadRequestException(
+              'All milestones must be completed before the project can be closed',
+            );
+          }
           project.status = ProjectStatus.COMPLETED;
           project.actualEndDate = new Date();
         }
@@ -668,8 +689,8 @@ export class ProjectsService {
     //City Admin must belong to this project
     const isInvolved =
       project.proposedBy === currentUser.city ||
-      (currentUser.city === City.ADAMA && project.adama !== null) ||
-      (currentUser.city === City.AURORA && project.aurora !== null);
+      (currentUser.city === City.ADAMA && project.adama != null) ||
+      (currentUser.city === City.AURORA && project.aurora != null);
 
     if (!isInvolved) {
       throw new ForbiddenException(
@@ -753,8 +774,8 @@ export class ProjectsService {
     if (currentUser.role === Role.CITY_ADMIN) {
       const isInvolved =
         project.proposedBy === currentUser.city ||
-        (currentUser.city === City.ADAMA && project.adama !== null) ||
-        (currentUser.city === City.AURORA && project.aurora !== null);
+        (currentUser.city === City.ADAMA && project.adama != null) ||
+        (currentUser.city === City.AURORA && project.aurora != null);
 
       if (!isInvolved) {
         throw new ForbiddenException(
@@ -773,6 +794,16 @@ export class ProjectsService {
     }
 
     const milestone = project.milestones[milestoneIndex];
+
+    // Officers/admins may only complete milestones their city owns (or BOTH).
+    if (
+      milestone.responsible !== Responsible.BOTH &&
+      milestone.responsible !== currentUser.city
+    ) {
+      throw new ForbiddenException(
+        'You can only update milestones assigned to your city',
+      );
+    }
 
     // Only City Admin can update completed milestone
     if (
@@ -834,8 +865,8 @@ export class ProjectsService {
     // City Admin must be involved in this project
     const isInvolved =
       project.proposedBy === currentUser.city ||
-      (currentUser.city === City.ADAMA && project.adama !== null) ||
-      (currentUser.city === City.AURORA && project.aurora !== null);
+      (currentUser.city === City.ADAMA && project.adama != null) ||
+      (currentUser.city === City.AURORA && project.aurora != null);
 
     if (!isInvolved) {
       throw new ForbiddenException(
@@ -1013,8 +1044,8 @@ export class ProjectsService {
     if (currentUser.role === Role.CITY_ADMIN) {
       const isInvolved =
         project.proposedBy === currentUser.city ||
-        (currentUser.city === City.ADAMA && project.adama !== null) ||
-        (currentUser.city === City.AURORA && project.aurora !== null);
+        (currentUser.city === City.ADAMA && project.adama != null) ||
+        (currentUser.city === City.AURORA && project.aurora != null);
 
       if (!isInvolved) {
         throw new ForbiddenException(
@@ -1073,8 +1104,8 @@ export class ProjectsService {
     if (currentUser.role === Role.CITY_ADMIN) {
       const isInvolved =
         project.proposedBy === currentUser.city ||
-        (currentUser.city === City.ADAMA && project.adama !== null) ||
-        (currentUser.city === City.AURORA && project.aurora !== null);
+        (currentUser.city === City.ADAMA && project.adama != null) ||
+        (currentUser.city === City.AURORA && project.aurora != null);
 
       if (!isInvolved) {
         throw new ForbiddenException(

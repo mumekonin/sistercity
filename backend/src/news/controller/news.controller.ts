@@ -19,13 +19,14 @@ import { Roles } from 'src/common/decorator/role.decorator';
 import { Role } from '../../common/enum/enum';
 import { NewsService } from '../service/news.service';
 import { CreateNewsDto, UpdateNewsDto } from '../dto/news.dto';
+import { multerConfig } from '../../common/cloudinary/multer.config';
 @Controller('/news')
 export class NewsController {
   constructor(private readonly newsService: NewsService) {}
   @Post('/')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN)
-  @UseInterceptors(FilesInterceptor('images', 5))
+  @UseInterceptors(FilesInterceptor('images', 5, multerConfig))
   async createNews(
     @Body() createNewsDto: CreateNewsDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -36,7 +37,7 @@ export class NewsController {
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.SUPER_ADMIN)
-  @UseInterceptors(FilesInterceptor('images', 5))
+  @UseInterceptors(FilesInterceptor('images', 5, multerConfig))
   async updateNews(
     @Param('id') id: string,
     @Body() updateNewsDto: UpdateNewsDto,

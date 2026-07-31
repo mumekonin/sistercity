@@ -252,6 +252,7 @@ export class MessageService {
       case 'urgent':
         filter = {
           'to.city': currentUser.city,
+          'to.department': currentUser.department,
           priority: { $in: [MessagePriority.URGENT, MessagePriority.CRITICAL] },
           $or: this.addressedToUser(currentUser),
           isArchived: { $in: [false, null, undefined] },
@@ -271,6 +272,7 @@ export class MessageService {
       default:
         filter = {
           'to.city': currentUser.city,
+          'to.department': currentUser.department,
           $or: this.addressedToUser(currentUser),
           isArchived: { $in: [false, null, undefined] },
         };

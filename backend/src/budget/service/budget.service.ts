@@ -40,6 +40,17 @@ export class BudgetService {
 
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  private roundMoney(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  private static readonly ACTIVE_PROJECT_STATUSES = [
+    ProjectStatus.IN_PROGRESS,
+    ProjectStatus.ON_HOLD,
+    ProjectStatus.DELAYED,
+  ];
+
   async recordExpenditure(
     projectId: string,
     createExpenditureDto: CreateExpenditureDto,
@@ -71,8 +82,8 @@ export class BudgetService {
     if (currentUser.role === Role.CITY_ADMIN) {
       const isInvolved =
         project.proposedBy === currentUser.city ||
-        (currentUser.city === City.ADAMA && project.adama !== null) ||
-        (currentUser.city === City.AURORA && project.aurora !== null);
+        (currentUser.city === City.ADAMA && project.adama != null) ||
+        (currentUser.city === City.AURORA && project.aurora != null);
 
       if (!isInvolved) {
         throw new ForbiddenException(
@@ -107,8 +118,9 @@ export class BudgetService {
       )
       .reduce((sum: number, e: any) => sum + e.amount, 0);
 
-    if (spent + pending + createExpenditureDto.amount > allocated) {
-      const available = allocated - spent - pending;
+    const amount = this.roundMoney(createExpenditureDto.amount);
+    if (spent + pending + amount > allocated) {
+      const available = this.roundMoney(allocated - spent - pending);
       throw new BadRequestException(
         `This would exceed your city's budget. Allocated ${allocated}, spent ${spent}, ` +
           `awaiting approval ${pending} — only ${available} is still available.`,
@@ -126,7 +138,7 @@ export class BudgetService {
       city: currentUser.city,
       category: createExpenditureDto.category,
       description: createExpenditureDto.description,
-      amount: createExpenditureDto.amount,
+      amount,
       date: createExpenditureDto.date,
       receiptUrl: uploadedFile.fileUrl,
       recordedBy: currentUser.userId,
@@ -170,28 +182,34 @@ export class BudgetService {
     }
   }
   private mapToResponse(budget: any, project: any): BudgetResponse {
+    const plannedAdama = this.roundMoney(project.budgetAdama ?? 0);
+    const plannedAurora = this.roundMoney(project.budgetAurora ?? 0);
+    const plannedTotal = this.roundMoney(project.budgetTotal ?? 0);
+    const spentAdama = this.roundMoney(budget.spentAdama ?? 0);
+    const spentAurora = this.roundMoney(budget.spentAurora ?? 0);
+    const spentTotal = this.roundMoney(budget.spentTotal ?? 0);
     return {
       id: budget._id.toString(),
       project: budget.project.toString(),
       // Planned amounts from Project document
-      plannedAdama: project.budgetAdama,
-      plannedAurora: project.budgetAurora,
-      plannedTotal: project.budgetTotal,
+      plannedAdama,
+      plannedAurora,
+      plannedTotal,
       // Actual spending from Budget document
-      spentAdama: budget.spentAdama,
-      spentAurora: budget.spentAurora,
-      spentTotal: budget.spentTotal,
+      spentAdama,
+      spentAurora,
+      spentTotal,
       // Calculated in service  not stored in DB
-      remainingAdama: project.budgetAdama - budget.spentAdama,
-      remainingAurora: project.budgetAurora - budget.spentAurora,
-      remainingTotal: project.budgetTotal - budget.spentTotal,
+      remainingAdama: this.roundMoney(plannedAdama - spentAdama),
+      remainingAurora: this.roundMoney(plannedAurora - spentAurora),
+      remainingTotal: this.roundMoney(plannedTotal - spentTotal),
 
       expenditures: budget.expenditures.map((e: any) => ({
         id: e._id.toString(),
         city: e.city,
         category: e.category,
         description: e.description,
-        amount: e.amount,
+        amount: this.roundMoney(e.amount),
         date: e.date,
         receiptUrl: e.receiptUrl,
         recordedBy: e.recordedBy.toString(),
@@ -228,8 +246,8 @@ export class BudgetService {
     if (currentUser.role === Role.CITY_ADMIN) {
       const isInvolved =
         project.proposedBy === currentUser.city ||
-        (currentUser.city === City.ADAMA && project.adama !== null) ||
-        (currentUser.city === City.AURORA && project.aurora !== null);
+        (currentUser.city === City.ADAMA && project.adama != null) ||
+        (currentUser.city === City.AURORA && project.aurora != null);
 
       if (!isInvolved) {
         throw new ForbiddenException(
@@ -241,18 +259,21 @@ export class BudgetService {
       .findOne({ project: projectId })
       .lean();
     if (!budget) {
+      const plannedAdama = this.roundMoney(project.budgetAdama ?? 0);
+      const plannedAurora = this.roundMoney(project.budgetAurora ?? 0);
+      const plannedTotal = this.roundMoney(project.budgetTotal ?? 0);
       return {
         id: null,
         project: projectId,
-        plannedAdama: project.budgetAdama,
-        plannedAurora: project.budgetAurora,
-        plannedTotal: project.budgetTotal,
+        plannedAdama,
+        plannedAurora,
+        plannedTotal,
         spentAdama: 0,
         spentAurora: 0,
         spentTotal: 0,
-        remainingAdama: project.budgetAdama,
-        remainingAurora: project.budgetAurora,
-        remainingTotal: project.budgetTotal,
+        remainingAdama: plannedAdama,
+        remainingAurora: plannedAurora,
+        remainingTotal: plannedTotal,
         expenditures: [],
         createdAt: null,
         updatedAt: null,
@@ -271,10 +292,15 @@ export class BudgetService {
     if (!project) {
       throw new NotFoundException('Project not found');
     }
+    if (!BudgetService.ACTIVE_PROJECT_STATUSES.includes(project.status)) {
+      throw new BadRequestException(
+        `Cannot update expenditures on a project with status ${project.status}`,
+      );
+    }
     const isInvolved =
       project.proposedBy === currentUser.city ||
-      (currentUser.city === City.ADAMA && project.adama !== null) ||
-      (currentUser.city === City.AURORA && project.aurora !== null);
+      (currentUser.city === City.ADAMA && project.adama != null) ||
+      (currentUser.city === City.AURORA && project.aurora != null);
     if (!isInvolved) {
       throw new ForbiddenException(
         'You can only manage expenditures for projects involving your city',
@@ -329,8 +355,9 @@ export class BudgetService {
         const spentField = isAdama ? 'spentAdama' : 'spentAurora';
         const allocated = isAdama ? project.budgetAdama : project.budgetAurora;
         const spent = isAdama ? budget.spentAdama : budget.spentAurora;
+        const amount = this.roundMoney(expenditure.amount);
 
-        if (spent + expenditure.amount > allocated) {
+        if (spent + amount > allocated) {
           throw new BadRequestException(
             `Approval denied: This expenditure exceeds the allocated budget for ${
               isAdama ? 'Adama' : 'Aurora'
@@ -342,21 +369,31 @@ export class BudgetService {
           {
             ...stillPending,
             // Re-asserted server-side so a concurrent approval cannot slip past
-            [spentField]: { $lte: allocated - expenditure.amount },
+            [spentField]: { $lte: allocated - amount },
           },
           {
             $set: {
               'expenditures.$.status': ExpenditureStatus.APPROVED,
               'expenditures.$.approvedBy': currentUser.userId,
               'expenditures.$.approvedAt': new Date(),
+              'expenditures.$.amount': amount,
             },
             $inc: {
-              [spentField]: expenditure.amount,
-              spentTotal: expenditure.amount,
+              [spentField]: amount,
+              spentTotal: amount,
             },
           },
           { new: true },
         );
+        // Keep stored totals at 2 decimal places after floating-point $inc.
+        if (updatedBudget) {
+          updatedBudget.spentAdama = this.roundMoney(updatedBudget.spentAdama);
+          updatedBudget.spentAurora = this.roundMoney(
+            updatedBudget.spentAurora,
+          );
+          updatedBudget.spentTotal = this.roundMoney(updatedBudget.spentTotal);
+          await updatedBudget.save();
+        }
         break;
       }
       case 'reject': {
@@ -397,15 +434,16 @@ export class BudgetService {
   }
   async getBudgetSummary(currentUser: any): Promise<BudgetSummaryResponse[]> {
     let projects: any[] = [];
+    const activeStatusFilter = {
+      status: { $in: BudgetService.ACTIVE_PROJECT_STATUSES },
+    };
     if (currentUser.role === Role.SUPER_ADMIN) {
-      projects = await this.projectModel
-        .find({ status: ProjectStatus.IN_PROGRESS })
-        .lean();
+      projects = await this.projectModel.find(activeStatusFilter).lean();
     }
     if (currentUser.role === Role.CITY_ADMIN) {
       projects = await this.projectModel
         .find({
-          status: ProjectStatus.IN_PROGRESS,
+          ...activeStatusFilter,
           $or: [
             { proposedBy: currentUser.city },
             {
@@ -431,9 +469,9 @@ export class BudgetService {
       const budget = budgets.find(
         (b: any) => b.project.toString() === project._id.toString(),
       );
-      const spentTotal = budget ? budget.spentTotal : 0;
-      const plannedTotal = project.budgetTotal;
-      const remainingTotal = plannedTotal - spentTotal;
+      const spentTotal = this.roundMoney(budget ? budget.spentTotal : 0);
+      const plannedTotal = this.roundMoney(project.budgetTotal ?? 0);
+      const remainingTotal = this.roundMoney(plannedTotal - spentTotal);
       const percentageUsed =
         plannedTotal === 0 ? 0 : Math.round((spentTotal / plannedTotal) * 100);
       return {
@@ -464,8 +502,8 @@ export class BudgetService {
     }
     const isInvolved =
       project.proposedBy === currentUser.city ||
-      (currentUser.city === City.ADAMA && project.adama !== null) ||
-      (currentUser.city === City.AURORA && project.aurora !== null);
+      (currentUser.city === City.ADAMA && project.adama != null) ||
+      (currentUser.city === City.AURORA && project.aurora != null);
 
     if (!isInvolved) {
       throw new ForbiddenException(
@@ -480,7 +518,7 @@ export class BudgetService {
       itemName: createEquipmentDto.itemName,
       description: createEquipmentDto.description,
       quantity: createEquipmentDto.quantity,
-      estimatedValue: createEquipmentDto.estimatedValue,
+      estimatedValue: this.roundMoney(createEquipmentDto.estimatedValue),
       providedDate: createEquipmentDto.providedDate,
       providedBy: currentUser.city,
       recordedBy: currentUser.userId,
@@ -499,7 +537,7 @@ export class BudgetService {
       description: equipment.description,
       providedBy: equipment.providedBy,
       quantity: equipment.quantity,
-      estimatedValue: equipment.estimatedValue,
+      estimatedValue: this.roundMoney(equipment.estimatedValue ?? 0),
       providedDate: equipment.providedDate,
       status: equipment.status,
       damagedNote: equipment.damagedNote,
@@ -530,8 +568,8 @@ export class BudgetService {
     if (currentUser.role === Role.CITY_ADMIN) {
       const isInvolved =
         project.proposedBy === currentUser.city ||
-        (currentUser.city === City.ADAMA && project.adama !== null) ||
-        (currentUser.city === City.AURORA && project.aurora !== null);
+        (currentUser.city === City.ADAMA && project.adama != null) ||
+        (currentUser.city === City.AURORA && project.aurora != null);
       if (!isInvolved) {
         throw new ForbiddenException(
           'You can only view equipment for projects involving your city',
@@ -552,6 +590,24 @@ export class BudgetService {
     const equipment = await this.equipmentModel.findById(equipmentId);
     if (!equipment) {
       throw new NotFoundException('Equipment not found');
+    }
+    const project = await this.projectModel.findById(equipment.project).lean();
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.status !== ProjectStatus.IN_PROGRESS) {
+      throw new BadRequestException(
+        `Cannot update equipment on a project with status ${project.status}. Project must be IN_PROGRESS`,
+      );
+    }
+    const isInvolved =
+      project.proposedBy === currentUser.city ||
+      (currentUser.city === City.ADAMA && project.adama != null) ||
+      (currentUser.city === City.AURORA && project.aurora != null);
+    if (!isInvolved) {
+      throw new ForbiddenException(
+        'You can only update equipment for projects involving your city',
+      );
     }
     if (equipment.providedBy !== currentUser.city) {
       throw new ForbiddenException(
@@ -588,6 +644,7 @@ export class BudgetService {
       }
       equipment.damagedNote = updateEquipmentDto.damagedNote;
     }
+    // Keep prior damage notes when leaving DAMAGED (e.g. REPAIRED) so history is not wiped.
     if (updateEquipmentDto.status === EquipmentStatus.RETURNED) {
       if (!updateEquipmentDto.returnedDate) {
         throw new BadRequestException(
@@ -597,10 +654,15 @@ export class BudgetService {
       if (updateEquipmentDto.returnedDate > new Date()) {
         throw new BadRequestException('Return date cannot be in the future');
       }
+      if (updateEquipmentDto.returnedDate < equipment.providedDate) {
+        throw new BadRequestException(
+          'Return date cannot be before the provided date',
+        );
+      }
       equipment.returnedDate = updateEquipmentDto.returnedDate;
     }
-    if (updateEquipmentDto.status !== EquipmentStatus.DAMAGED) {
-      equipment.damagedNote = null;
+    if (updateEquipmentDto.status === EquipmentStatus.AVAILABLE) {
+      equipment.returnedDate = null;
     }
     equipment.status = updateEquipmentDto.status;
     const updatedEquipment = await equipment.save();

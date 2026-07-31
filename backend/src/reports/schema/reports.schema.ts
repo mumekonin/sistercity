@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 import { ReportType, ReportCity } from '../../common/enum/enum';
 @Schema({ timestamps: true })
 export class Report extends Document {
   @Prop({ required: true, enum: ReportType })
   reportType!: ReportType;
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   generatedBy!: Types.ObjectId;
   @Prop({ required: true, enum: ReportCity })
   city!: ReportCity;

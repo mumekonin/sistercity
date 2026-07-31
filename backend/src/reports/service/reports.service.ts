@@ -65,10 +65,16 @@ export class ReportsService {
     createReportDto: CreateReportDto,
     currentUser: any,
   ): Promise<ReportResponse> {
-    // dateFrom must be before dateTo
-    if (createReportDto.dateFrom >= createReportDto.dateTo) {
+    // Same calendar day is allowed; reject only inverted ranges.
+    if (createReportDto.dateFrom > createReportDto.dateTo) {
       throw new BadRequestException('dateFrom must be before dateTo');
     }
+
+    // Inclusive end-of-day so a single-day report covers the full day.
+    const dateFrom = new Date(createReportDto.dateFrom);
+    dateFrom.setHours(0, 0, 0, 0);
+    const dateTo = new Date(createReportDto.dateTo);
+    dateTo.setHours(23, 59, 59, 999);
 
     // City Admin cannot request BOTH
     if (
@@ -99,40 +105,40 @@ export class ReportsService {
       case ReportType.PARTNERSHIP_PROGRESS:
         data = await this.computePartnershipProgress(
           createReportDto.city,
-          createReportDto.dateFrom,
-          createReportDto.dateTo,
+          dateFrom,
+          dateTo,
         );
         break;
 
       case ReportType.PROJECT_COMPLETION:
         data = await this.computeProjectCompletion(
           createReportDto.city,
-          createReportDto.dateFrom,
-          createReportDto.dateTo,
+          dateFrom,
+          dateTo,
         );
         break;
 
       case ReportType.COMMUNICATION_ACTIVITY:
         data = await this.computeCommunicationActivity(
           createReportDto.city,
-          createReportDto.dateFrom,
-          createReportDto.dateTo,
+          dateFrom,
+          dateTo,
         );
         break;
 
       case ReportType.BUDGET_UTILIZATION:
         data = await this.computeBudgetUtilization(
           createReportDto.city,
-          createReportDto.dateFrom,
-          createReportDto.dateTo,
+          dateFrom,
+          dateTo,
         );
         break;
 
       case ReportType.DOCUMENT_ACTIVITY:
         data = await this.computeDocumentActivity(
           createReportDto.city,
-          createReportDto.dateFrom,
-          createReportDto.dateTo,
+          dateFrom,
+          dateTo,
         );
         break;
 
@@ -146,8 +152,8 @@ export class ReportsService {
       reportType: createReportDto.reportType,
       generatedBy: currentUser.userId,
       city: createReportDto.city,
-      dateFrom: createReportDto.dateFrom,
-      dateTo: createReportDto.dateTo,
+      dateFrom,
+      dateTo,
       data,
       generatedAt: new Date(),
     });
@@ -286,19 +292,20 @@ export class ReportsService {
   ): Promise<Record<string, any>> {
     const cityFilter = this.buildCityFilter(city);
 
-    const completedProjects = await this.projectModel
+    // One cohort: projects created in the window. Completion is measured inside
+    // that set so the rate cannot exceed 100% from mixing endDate with createdAt.
+    const projectsInWindow = await this.projectModel
       .find({
         ...cityFilter,
-        status: ProjectStatus.COMPLETED,
-        endDate: { $gte: dateFrom, $lte: dateTo }, // ← fixed
+        createdAt: { $gte: dateFrom, $lte: dateTo },
       })
       .lean();
 
-    const totalProjects = await this.projectModel.countDocuments({
-      ...cityFilter,
-      createdAt: { $gte: dateFrom, $lte: dateTo },
-    });
+    const completedProjects = projectsInWindow.filter(
+      (p: any) => p.status === ProjectStatus.COMPLETED,
+    );
 
+    const totalProjects = projectsInWindow.length;
     const completionRate =
       totalProjects === 0
         ? 0
@@ -367,16 +374,46 @@ export class ReportsService {
         (m.status === MessageStatus.SENT || m.status === MessageStatus.READ),
     ).length;
 
-    const repliedMessages = messages.filter((m: any) => m.readAt !== null);
+    // Time-to-reply from reply documents, not time-to-open (readAt).
+    const replies = messages.filter((m: any) => m.parentId != null);
+    const parentById = new Map(
+      messages
+        .filter((m: any) => m.parentId == null)
+        .map((m: any) => [m._id.toString(), m]),
+    );
+    // Replies may reference parents outside the window; load those separately.
+    const missingParentIds = [
+      ...new Set(
+        replies
+          .map((m: any) => m.parentId?.toString())
+          .filter((id: string | undefined) => id && !parentById.has(id)),
+      ),
+    ];
+    if (missingParentIds.length > 0) {
+      const parents = await this.messageModel
+        .find({ _id: { $in: missingParentIds } })
+        .lean();
+      parents.forEach((p: any) => parentById.set(p._id.toString(), p));
+    }
+
     let avgResponseDays = 0;
-    if (repliedMessages.length > 0) {
-      const totalDays = repliedMessages.reduce((sum: number, m: any) => {
-        const diffMs = m.readAt - m.createdAt;
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
-        return sum + diffDays;
-      }, 0);
+    const replyDurations: number[] = [];
+    for (const reply of replies) {
+      const parentId = reply.parentId?.toString();
+      if (!parentId) continue;
+      const parent = parentById.get(parentId);
+      if (!parent) continue;
+      const diffMs =
+        new Date(reply.createdAt).getTime() -
+        new Date(parent.createdAt).getTime();
+      if (diffMs >= 0) {
+        replyDurations.push(diffMs / (1000 * 60 * 60 * 24));
+      }
+    }
+    if (replyDurations.length > 0) {
+      const totalDays = replyDurations.reduce((sum, d) => sum + d, 0);
       avgResponseDays =
-        Math.round((totalDays / repliedMessages.length) * 10) / 10;
+        Math.round((totalDays / replyDurations.length) * 10) / 10;
     }
 
     const byType: Record<string, number> = {};
@@ -522,7 +559,12 @@ export class ReportsService {
     doc.moveDown();
     doc.fontSize(10).text(JSON.stringify(report.data, null, 2));
 
-    doc.end();
+    await new Promise<void>((resolve, reject) => {
+      res.on('finish', () => resolve());
+      res.on('error', (err: Error) => reject(err));
+      doc.on('error', (err: Error) => reject(err));
+      doc.end();
+    });
   }
   // Private — Download as Excel
   private async downloadAsExcel(report: any, res: any): Promise<void> {
