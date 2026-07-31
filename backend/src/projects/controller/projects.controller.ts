@@ -61,7 +61,7 @@ export class ProjectsController {
     return this.projectsService.deleteProject(id, req.user);
   }
   @Get('/')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), DbRolesGuard)
   @Roles(Role.CITY_ADMIN, Role.DEPT_OFFICER, Role.SUPER_ADMIN)
   async getAllProjects(@Req() req: any) {
     return this.projectsService.getAllProjects(req.user);

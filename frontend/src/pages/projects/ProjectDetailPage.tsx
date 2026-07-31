@@ -133,13 +133,9 @@ export default function ProjectDetailPage() {
     (user?.city === 'ADAMA' && !project.adama) ||
     (user?.city === 'AURORA' && !project.aurora)
   );
-  // canPlan: backend blocks if city already submitted budget (tracked via adamaPlanned/auroraPlanned).
-  // Since those flags aren't in the response, we proxy via budgetAdama/budgetAurora > 0.
-  const adamaAlreadyPlanned = project.budgetAdama > 0;
-  const auroraAlreadyPlanned = project.budgetAurora > 0;
   const canPlan = isAdmin && project.status === 'PLANNED' && (
-    (user?.city === 'ADAMA' && !adamaAlreadyPlanned) ||
-    (user?.city === 'AURORA' && !auroraAlreadyPlanned)
+    (user?.city === 'ADAMA' && !project.adamaPlanned) ||
+    (user?.city === 'AURORA' && !project.auroraPlanned)
   );
   const canUpdateStatus = isAdmin && ['PLANNED', 'IN_PROGRESS', 'ON_HOLD', 'DELAYED'].includes(project.status);
   // addMilestone is @Roles(CITY_ADMIN) on backend — officers not allowed

@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Project } from '../projects/schema/projects.schema';
 import { Message } from '../communication/schema/communication.schema';
-import { Role } from '../common/enum/enum';
+import { City, Role } from '../common/enum/enum';
 import { News } from 'src/news/schema/news.schema';
 import { Event } from 'src/events/schema/events.schema';
 @Injectable()
@@ -36,10 +36,12 @@ export class SearchService {
           .filter((p: any) => {
             if (currentUser.role === Role.SUPER_ADMIN) return true;
             if (currentUser.role === Role.CITY_ADMIN) {
+              // Any assigned project matched here regardless of which city held
+              // the assignment, so every project leaked into both cities' search.
+              const ownAssignment =
+                currentUser.city === City.ADAMA ? p.adama : p.aurora;
               return (
-                p.proposedBy === currentUser.city ||
-                p.adama !== null ||
-                p.aurora !== null
+                p.proposedBy === currentUser.city || ownAssignment != null
               );
             }
             if (currentUser.role === Role.DEPT_OFFICER) {
@@ -63,13 +65,33 @@ export class SearchService {
     // search messages
     if (!type || type === 'messages') {
       if (currentUser) {
+        // `to.city` alone would surface every department's mail across the city.
+        // Search has to honour the same addressee rules as the inbox: your own
+        // sent mail, your department's broadcasts, and messages sent to you.
+        const messageScope: any[] = [
+          { 'from.userId': currentUser.userId },
+          {
+            'to.city': currentUser.city,
+            'to.department': currentUser.department,
+            $or: [
+              { 'to.userId': null },
+              { 'to.userId': { $exists: false } },
+              { 'to.userId': currentUser.userId },
+            ],
+          },
+        ];
+
+        if (
+          currentUser.role === Role.CITY_ADMIN ||
+          currentUser.role === Role.SUPER_ADMIN
+        ) {
+          messageScope.push({ 'to.city': currentUser.city });
+        }
+
         const messages = await this.messageModel
           .find({
             $text: { $search: query },
-            $or: [
-              { 'from.userId': currentUser.userId },
-              { 'to.city': currentUser.city },
-            ],
+            $or: messageScope,
           })
           .select('subject referenceNumber status from to')
           .lean();

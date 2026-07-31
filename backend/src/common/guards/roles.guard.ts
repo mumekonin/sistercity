@@ -22,10 +22,10 @@ export class DbRolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-    console.log('the user information is ', user);
     if (!user || !user.userId) {
       throw new UnauthorizedException('User not authenticated');
     }
+    // JwtStrategy attaches the current role from the database on every request.
     return requiredRoles.includes(user.role);
   }
 }

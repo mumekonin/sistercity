@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LayoutList,Wallet,PiggyBank,FolderOpen,TrendingUp,Plus,AlertTriangle,Wrench,Receipt,Link2,CheckCircle2,XCircle, Clock, Loader2} from 'lucide-react';
+import { LayoutList,Wallet,PiggyBank,FolderOpen,TrendingUp,Plus,AlertTriangle,Wrench,Receipt,Link2,CheckCircle2,XCircle, X, Clock, Loader2} from 'lucide-react';
 import { budgetApi, equipmentApi } from '../../api/budget.api';
 import type { BudgetSummary, Budget, Equipment } from '../../types/budget.types';
 import { EquipmentStatus } from '../../types/budget.types';
@@ -67,6 +67,7 @@ export default function BudgetPage() {
     AVAILABLE: { label: 'Available', className: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' },
     IN_USE:    { label: 'In Use',    className: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300' },
     DAMAGED:   { label: 'Damaged',   className: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
+    REPAIRED:  { label: 'Repaired',  className: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-300' },
     RETURNED:  { label: 'Returned',  className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
   };
 
@@ -373,6 +374,7 @@ function BudgetDetail({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -396,6 +398,7 @@ function BudgetDetail({
   ) => {
     if (!budget) return;
     setActionLoading(eid);
+    setActionError(null);
     try {
       const updated = await budgetApi.updateExpenditure(projectId, eid, {
         action,
@@ -405,6 +408,19 @@ function BudgetDetail({
       onExpenditureUpdated();
       setRejectId(null);
       setRejectionReason('');
+    } catch (err: any) {
+      // The backend rejects an approval whose amount no longer fits the remaining
+      // budget, or that someone else already decided; without this the row simply
+      // stopped spinning and looked like nothing happened.
+      setActionError(
+        err?.response?.data?.message ??
+          `Could not ${action} this expenditure. Please reload and try again.`,
+      );
+      try {
+        setBudget(await budgetApi.getByProject(projectId));
+      } catch {
+        // Keep the current view if the refresh itself fails.
+      }
     } finally {
       setActionLoading(null);
     }
@@ -442,6 +458,20 @@ function BudgetDetail({
   return (
     <div className="p-4 space-y-5">
 
+      {actionError && (
+        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300">
+          <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+          <span className="flex-1">{actionError}</span>
+          <button
+            onClick={() => setActionError(null)}
+            className="text-red-400 hover:text-red-600 transition"
+            aria-label="Dismiss error"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Budget breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[
@@ -468,8 +498,8 @@ function BudgetDetail({
           <span>Total Progress</span>
           <span>
             {budget.plannedTotal > 0
-              ? Math.round((budget.spentTotal / budget.plannedTotal) * 100)
-              : 0}%
+              ? Math.max(0, Math.round((budget.spentTotal / budget.plannedTotal) * 100))
+              : budget.spentTotal > 0 ? 100 : 0}%
           </span>
         </div>
         <div className="w-full bg-blue-200 dark:bg-slate-600 rounded-full h-2">

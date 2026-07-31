@@ -45,6 +45,8 @@ export class MessageResponse {
   attachments?: AttachmentResponse[];
   relatedProject?: string | null;
   status?: MessageStatus;
+  /** Whether the requesting user has read this message. */
+  isRead?: boolean;
   readAt?: Date | null;
   responseDeadline?: Date;
   isEscalated?: boolean;
@@ -63,6 +65,8 @@ export class MessageListResponse {
   from?: MessageFromResponse;
   to?: MessageToResponse;
   status?: MessageStatus;
+  /** Whether the requesting user has read this message. */
+  isRead?: boolean;
   isEscalated?: boolean;
   responseDeadline?: Date;
   createdAt?: Date;

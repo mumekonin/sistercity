@@ -185,6 +185,9 @@ export class DocumentsService {
             {
               city: currentUser.city,
               department: currentUser.department,
+              // ADMINS_ONLY stays with the admins even inside the owning
+              // department, otherwise the level means nothing to its uploader's peers.
+              accessLevel: { $ne: AccessLevel.ADMINS_ONLY },
             },
             {
               city: currentUser.city,
@@ -271,6 +274,12 @@ export class DocumentsService {
         doc.city === currentUser.city &&
         doc.department === currentUser.department
       ) {
+        // ADMINS_ONLY stays with the admins even inside the owning department.
+        if (doc.accessLevel === AccessLevel.ADMINS_ONLY) {
+          throw new ForbiddenException(
+            'You do not have permission to view this document',
+          );
+        }
         // Same city
       } else if (
         doc.city === currentUser.city &&
@@ -483,6 +492,17 @@ export class DocumentsService {
           action: 'ARCHIVED',
           timestamp: new Date(),
         });
+        // Archived documents are no longer downloadable — purge storage for the
+        // current file and every superseded version so blobs do not accumulate.
+        const urlsToDelete = [
+          doc.fileUrl,
+          ...doc.previousVersions.map((v: any) => v.fileUrl),
+        ].filter(Boolean);
+        await Promise.all(
+          urlsToDelete.map((url) =>
+            this.cloudinaryService.deleteFile(url).catch(() => undefined),
+          ),
+        );
         break;
       }
       case 'change-access': {
@@ -574,6 +594,12 @@ export class DocumentsService {
         doc.city === currentUser.city &&
         doc.department === currentUser.department
       ) {
+        // ADMINS_ONLY stays with the admins even inside the owning department.
+        if (doc.accessLevel === AccessLevel.ADMINS_ONLY) {
+          throw new ForbiddenException(
+            'You do not have permission to download this document',
+          );
+        }
         // Same city — PUBLIC, BOTH_CITIES, OWN_CITY_ONLY
       } else if (
         doc.city === currentUser.city &&

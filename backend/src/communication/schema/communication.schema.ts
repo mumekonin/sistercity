@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 import {
   City,
   MessageType,
@@ -8,7 +8,7 @@ import {
 } from '../../common/enum/enum';
 @Schema({ _id: false })
 class MessageFrom {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   userId!: Types.ObjectId;
   @Prop({ required: true, enum: City })
   city!: City;
@@ -24,7 +24,7 @@ class MessageTo {
   city!: City;
   @Prop({ required: true })
   department!: string;
-  @Prop({ default: null, type: Types.ObjectId, ref: 'User' })
+  @Prop({ default: null, type: SchemaTypes.ObjectId, ref: 'User' })
   userId!: Types.ObjectId | null;
 }
 
@@ -33,7 +33,7 @@ class Attachment {
   @Prop({
     required: false,
     default: null,
-    type: Types.ObjectId,
+    type: SchemaTypes.ObjectId,
     ref: 'Document',
   })
   documentId!: Types.ObjectId | null;
@@ -47,10 +47,10 @@ class Attachment {
 export class Message extends Document {
   @Prop({ required: true, unique: true })
   referenceNumber!: string;
-  @Prop({ default: null, type: Types.ObjectId, ref: 'Message' })
+  @Prop({ default: null, type: SchemaTypes.ObjectId, ref: 'Message' })
   threadId!: Types.ObjectId | null;
 
-  @Prop({ default: null, type: Types.ObjectId, ref: 'Message' })
+  @Prop({ default: null, type: SchemaTypes.ObjectId, ref: 'Message' })
   parentId!: Types.ObjectId | null;
   @Prop({ required: true, type: MessageFrom })
   from!: MessageFrom;
@@ -73,11 +73,17 @@ export class Message extends Document {
   @Prop({ type: [Attachment], default: [] })
   attachments!: Attachment[];
 
-  @Prop({ default: null, type: Types.ObjectId, ref: 'Project' })
+  @Prop({ default: null, type: SchemaTypes.ObjectId, ref: 'Project' })
   relatedProject!: Types.ObjectId | null;
 
   @Prop({ required: true, enum: MessageStatus, default: MessageStatus.SENT })
   status!: MessageStatus;
+
+  // Read state is per recipient: a message can be addressed to a whole
+  // department, so a single flag cannot represent who has actually seen it.
+  // `status` / `readAt` stay as the coarse "first opened" markers shown to the sender.
+  @Prop({ type: [{ type: SchemaTypes.ObjectId, ref: 'User' }], default: [] })
+  readBy!: Types.ObjectId[];
 
   @Prop({ default: null, type: Date })
   readAt!: Date | null;

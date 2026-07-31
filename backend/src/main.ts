@@ -1,6 +1,11 @@
 import * as dns from 'dns';
 dns.setDefaultResultOrder('ipv4first');
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+
+// Some ISPs don't return the SRV record Atlas needs, but hardcoding public
+// resolvers breaks every network that blocks outbound DNS, so this is opt-in.
+if (process.env.DNS_SERVERS) {
+  dns.setServers(process.env.DNS_SERVERS.split(',').map((s) => s.trim()));
+}
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';

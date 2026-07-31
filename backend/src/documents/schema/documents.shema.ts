@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 import {
   AccessLevel,
   City,
@@ -20,7 +20,7 @@ class PreviousVersion {
 const PreviousVersionSchema = SchemaFactory.createForClass(PreviousVersion);
 @Schema({ _id: false })
 class ActivityLog {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   userId!: Types.ObjectId;
   @Prop({ required: true })
   action!: string;
@@ -34,13 +34,13 @@ export class DocumentFile extends Document {
   title!: string;
   @Prop({ required: true, enum: DocumentCategory })
   category!: DocumentCategory;
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   uploadedBy!: Types.ObjectId;
   @Prop({ required: true, enum: City })
   city!: City;
   @Prop({ required: true })
   department!: string;
-  @Prop({ default: null, type: Types.ObjectId, ref: 'Project' })
+  @Prop({ default: null, type: SchemaTypes.ObjectId, ref: 'Project' })
   relatedProject!: Types.ObjectId | null;
   @Prop({ required: true })
   documentDate!: Date;
@@ -66,7 +66,7 @@ export class DocumentFile extends Document {
     default: DocumentApprovalStatus.DRAFT,
   })
   approvalStatus!: DocumentApprovalStatus;
-  @Prop({ default: null, type: Types.ObjectId, ref: 'User' })
+  @Prop({ default: null, type: SchemaTypes.ObjectId, ref: 'User' })
   approvedBy!: Types.ObjectId | null;
   @Prop({ default: null, type: String })
   approvalNote!: string | null;

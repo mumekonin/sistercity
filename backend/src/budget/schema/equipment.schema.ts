@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 import { City, EquipmentStatus } from '../../common/enum/enum';
 
 @Schema({ timestamps: true })
 export class Equipment extends Document {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Project' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'Project' })
   project!: Types.ObjectId;
   @Prop({ required: true })
   itemName!: string;
@@ -28,7 +28,7 @@ export class Equipment extends Document {
   damagedNote!: string | null;
   @Prop({ default: null, type: Date })
   returnedDate!: Date | null;
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   recordedBy!: Types.ObjectId;
   createdAt!: Date;
   updatedAt!: Date;

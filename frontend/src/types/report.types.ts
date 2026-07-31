@@ -58,6 +58,8 @@ export interface CommunicationActivityData {
   totalMessages: number;
   sent: number;
   received: number;
+  /** Per-city split, the meaningful breakdown for a both-cities report. */
+  byCity?: Record<string, { sent: number; received: number }>;
   overdue: number;
   avgResponseDays: number;
   byType: Record<string, number>;

@@ -212,7 +212,14 @@ export class NotificationService {
         }),
         this.messageModel.countDocuments({
           'to.city': currentUser.city,
-          status: MessageStatus.SENT,
+          readBy: { $ne: new Types.ObjectId(currentUser.userId) },
+          // Same addressee rule as the inbox: a DM to another user must not
+          // inflate the city admin's unread badge.
+          $or: [
+            { 'to.userId': null },
+            { 'to.userId': { $exists: false } },
+            { 'to.userId': currentUser.userId },
+          ],
         }),
         this.eventModel.countDocuments({
           $or: [
@@ -271,7 +278,14 @@ export class NotificationService {
         this.messageModel.countDocuments({
           'to.city': currentUser.city,
           'to.department': currentUser.department,
-          status: MessageStatus.SENT,
+          readBy: { $ne: new Types.ObjectId(currentUser.userId) },
+          // Without the addressee rule this counted mail sent to a named
+          // colleague, so the badge disagreed with the inbox it links to.
+          $or: [
+            { 'to.userId': null },
+            { 'to.userId': { $exists: false } },
+            { 'to.userId': currentUser.userId },
+          ],
         }),
         this.notificationModel.countDocuments({
           recipient: new Types.ObjectId(currentUser.userId),

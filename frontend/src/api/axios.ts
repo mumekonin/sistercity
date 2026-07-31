@@ -10,13 +10,47 @@ function getRefreshToken(): string | null {
   return localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
 }
 
-function storeNewToken(token: string): void {
+// The backend rotates the refresh token on every refresh and invalidates the
+// previous one, so both values must be replaced together or the next refresh fails.
+function storeTokens(token: string, refreshToken: string): void {
   // Write to whichever storage the refresh token came from
-  if (localStorage.getItem('refreshToken')) {
-    localStorage.setItem('token', token);
-  } else {
-    sessionStorage.setItem('token', token);
+  const storage = localStorage.getItem('refreshToken') ? localStorage : sessionStorage;
+  storage.setItem('token', token);
+  storage.setItem('refreshToken', refreshToken);
+}
+
+function clearSession(): void {
+  ['token', 'refreshToken', 'user'].forEach((k) => {
+    localStorage.removeItem(k);
+    sessionStorage.removeItem(k);
+  });
+}
+
+function redirectToLoginUnlessPublic(): void {
+  const publicPaths = ['/', '/login', '/forgot-password', '/reset-password'];
+  if (!publicPaths.includes(window.location.pathname)) {
+    window.location.href = '/login';
   }
+}
+
+// Shared across concurrent 401s: only one refresh may run at a time, otherwise
+// every parallel request spends the same rotated token and all but one fail.
+let refreshInFlight: Promise<string> | null = null;
+
+function refreshAccessToken(refreshToken: string): Promise<string> {
+  if (!refreshInFlight) {
+    refreshInFlight = axios
+      .post(`${API_URL}/auth/refresh`, { refreshToken })
+      .then((response) => {
+        const { token, refreshToken: rotated } = response.data;
+        storeTokens(token, rotated);
+        return token as string;
+      })
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
 }
 
 const api = axios.create({
@@ -53,30 +87,16 @@ api.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
-          const newToken = response.data.token;
-          storeNewToken(newToken);
+          const newToken = await refreshAccessToken(refreshToken);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return api(originalRequest);
         } catch {
-          ['token', 'refreshToken', 'user'].forEach((k) => {
-            localStorage.removeItem(k);
-            sessionStorage.removeItem(k);
-          });
-          const publicPaths = ['/', '/login', '/forgot-password', '/reset-password'];
-          if (!publicPaths.includes(window.location.pathname)) {
-            window.location.href = '/login';
-          }
+          clearSession();
+          redirectToLoginUnlessPublic();
         }
       } else {
-        ['token', 'refreshToken', 'user'].forEach((k) => {
-          localStorage.removeItem(k);
-          sessionStorage.removeItem(k);
-        });
-        const publicPaths = ['/', '/login', '/forgot-password', '/reset-password'];
-        if (!publicPaths.includes(window.location.pathname)) {
-          window.location.href = '/login';
-        }
+        clearSession();
+        redirectToLoginUnlessPublic();
       }
     }
 

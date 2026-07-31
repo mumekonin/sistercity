@@ -105,3 +105,18 @@ export class RefreshTokenDto {
   @IsString()
   refreshToken!: string;
 }
+export class ForgotPasswordDto {
+  @IsNotEmpty()
+  @IsEmail()
+  email!: string;
+}
+export class ResetPasswordDto {
+  @IsNotEmpty()
+  @IsString()
+  token!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  newPassword!: string;
+}

@@ -25,6 +25,7 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
   const [replying, setReplying] = useState(false);
   const [showReply, setShowReply] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -41,9 +42,13 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
     fetch();
   }, [messageId]);
 
-  const handleReply = async () => {
+  // The reply must target the message the reply form was offered for — the last
+  // one in the thread — otherwise the backend rejects it whenever the thread has
+  // gone back and forth, because the root message was addressed to someone else.
+  const handleReply = async (replyToId: string) => {
     if (!message || (!replyBody.trim() && files.length === 0)) return;
     setReplying(true);
+    setError(null);
     try {
       const attachments = [];
       for (const file of files) {
@@ -57,12 +62,17 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
         });
       }
 
-      await messagesApi.reply(message.id, { body: replyBody, attachments });
+      await messagesApi.reply(replyToId, { body: replyBody, attachments });
       setReplyBody('');
       setFiles([]);
       setShowReply(false);
       const updated = await messagesApi.getById(messageId);
       setMessage(updated);
+      onUpdated(updated);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ?? 'Could not send the reply. Please try again.',
+      );
     } finally {
       setReplying(false);
     }
@@ -71,10 +81,15 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
   const handleAction = async (action: string) => {
     if (!message) return;
     setActionLoading(true);
+    setError(null);
     try {
       const updated = await messagesApi.update(message.id, action);
       setMessage(updated);
       onUpdated(updated);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ?? `Could not ${action} this message. Please try again.`,
+      );
     } finally {
       setActionLoading(false);
     }
@@ -126,7 +141,11 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
 
   // Determine who can reply (only the recipient of the last message in the thread)
   const lastMessage = replies.length > 0 ? replies[replies.length - 1] : displayOriginal;
-  const isRecipient = lastMessage.to.city === user?.city && lastMessage.to.department === user?.department;
+  // Mirrors the backend rule: a message with an explicit recipient is theirs
+  // alone to answer; without one it belongs to the whole department.
+  const isRecipient = lastMessage.to.userId
+    ? lastMessage.to.userId === user?.id
+    : lastMessage.to.city === user?.city && lastMessage.to.department === user?.department;
 
   const renderAttachments = (attachments: any[]) => {
     if (!attachments || attachments.length === 0) return null;
@@ -266,6 +285,24 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-blue-50/30 dark:bg-[#0d1117]">
+
+        {error && (
+          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300">
+            <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="flex-1">{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-600 transition"
+              aria-label="Dismiss error"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Original message */}
         <div className="bg-white dark:bg-[#0f172a] rounded-xl border border-blue-100 dark:border-slate-700 p-5">
@@ -422,7 +459,7 @@ export default function MessageDetail({ messageId, onBack, onUpdated }: Props) {
                 Cancel
               </button>
               <button
-                onClick={handleReply}
+                onClick={() => handleReply(lastMessage.id)}
                 disabled={replying || (!replyBody.trim() && files.length === 0)}
                 className="px-4 py-2 bg-[#1a4a8a] hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium rounded-lg transition flex items-center gap-2"
               >

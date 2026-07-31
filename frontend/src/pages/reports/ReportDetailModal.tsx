@@ -141,6 +141,17 @@ export default function ReportDetailModal({ reportId, onClose }: Props) {
               <StatCard label="Overdue" value={data.overdue} />
             </div>
             <StatCard label="Avg. Response Time" value={`${data.avgResponseDays} days`} />
+            {data.byCity && (
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(data.byCity).map(([city, counts]) => (
+                  <StatCard
+                    key={city}
+                    label={`${city} sent / received`}
+                    value={`${counts.sent} / ${counts.received}`}
+                  />
+                ))}
+              </div>
+            )}
             <BreakdownList title="By Type" breakdown={data.byType} />
           </>
         );

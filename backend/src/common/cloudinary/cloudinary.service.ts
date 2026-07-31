@@ -41,8 +41,12 @@ export class CloudinaryService {
 
   async deleteFile(fileUrl: string): Promise<void> {
     const urlParts = fileUrl.split('/upload/');
-    const publicIdWithExtension = urlParts[1];
-    const publicId = publicIdWithExtension.split('.')[0];
+    if (!urlParts[1]) return;
+
+    // Cloudinary URLs look like .../upload[/transforms]/v1234/folder/file.ext
+    // Strip optional transforms + version, then only the final extension.
+    const withoutVersion = urlParts[1].replace(/^(?:[^/]+\/)?v\d+\//, '');
+    const publicId = withoutVersion.replace(/\.[^/.]+$/, '');
     await cloudinary.uploader.destroy(publicId);
   }
 }

@@ -1,21 +1,30 @@
 export const DocumentCategory = {
-  AGREEMENT: 'AGREEMENT',
-  FINANCIAL: 'FINANCIAL',
-  REPORT: 'REPORT',
-  MINUTES: 'MINUTES',
-  LOGISTICS: 'LOGISTICS',
   LEGAL: 'LEGAL',
-  TECHNICAL: 'TECHNICAL',
-  OTHER: 'OTHER',
+  PROJECT: 'PROJECT',
+  MEETING: 'MEETING',
+  FINANCIAL: 'FINANCIAL',
+  POLICY: 'POLICY',
+  EVIDENCE: 'EVIDENCE',
+  ARCHIVE: 'ARCHIVE',
 } as const;
 export type DocumentCategory = typeof DocumentCategory[keyof typeof DocumentCategory];
 
 export const AccessLevel = {
+  PUBLIC: 'PUBLIC',
   BOTH_CITIES: 'BOTH_CITIES',
-  CITY_ADMINS: 'CITY_ADMINS',
-  DEPARTMENT: 'DEPARTMENT',
+  OWN_CITY_ONLY: 'OWN_CITY_ONLY',
+  DEPARTMENT_ONLY: 'DEPARTMENT_ONLY',
+  ADMINS_ONLY: 'ADMINS_ONLY',
 } as const;
 export type AccessLevel = typeof AccessLevel[keyof typeof AccessLevel];
+
+export const AccessLevelLabel: Record<AccessLevel, string> = {
+  PUBLIC: 'Public',
+  BOTH_CITIES: 'Both Cities',
+  OWN_CITY_ONLY: 'My City Only',
+  DEPARTMENT_ONLY: 'My Department Only',
+  ADMINS_ONLY: 'Admins Only',
+};
 
 export const DocumentApprovalStatus = {
   DRAFT: 'DRAFT',

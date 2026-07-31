@@ -13,5 +13,6 @@ import { EmailModule } from '../email/email.module';
   ],
   controllers: [UsersConteroller, AuthController],
   providers: [UserService],
+  exports: [MongooseModule, UserService],
 })
 export class UsersModule {}

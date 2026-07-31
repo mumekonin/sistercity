@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 import { City, EventType, EventStatus } from '../../common/enum/enum';
 @Schema({ _id: false })
 class AgendaItem {
@@ -50,10 +50,10 @@ export class Event extends Document {
   @Prop({ required: true })
   description!: string;
 
-  @Prop({ default: null, type: Types.ObjectId, ref: 'Project' })
+  @Prop({ default: null, type: SchemaTypes.ObjectId, ref: 'Project' })
   relatedProject!: Types.ObjectId | null;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   organizer!: Types.ObjectId;
 
   @Prop({ required: true, enum: City })

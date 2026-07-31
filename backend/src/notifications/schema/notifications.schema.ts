@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 import { NotificationType, NotificationPriority } from '../../common/enum/enum';
 
 @Schema({ timestamps: true })
 export class Notification extends Document {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   recipient!: Types.ObjectId;
   @Prop({ required: true, enum: NotificationType })
   type!: NotificationType;

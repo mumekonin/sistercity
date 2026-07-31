@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 import {
   City,
   MilestoneStatus,
@@ -49,7 +49,7 @@ class Task {
   @Prop({ required: true })
   description!: string;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   assignedTo!: Types.ObjectId;
 
   @Prop({ required: true, enum: City })
@@ -80,7 +80,7 @@ class Issue {
   @Prop({ required: true, enum: Responsible })
   affectedCity!: Responsible;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   raisedBy!: Types.ObjectId;
 
   @Prop({ required: true, default: Date.now })
@@ -102,7 +102,7 @@ class CityAssignment {
   @Prop({ required: true })
   department!: string;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   focalPerson!: Types.ObjectId;
 }
 const CityAssignmentSchema = SchemaFactory.createForClass(CityAssignment);
@@ -121,7 +121,7 @@ export class Project extends Document {
   @Prop({ required: true, enum: City })
   proposedBy!: City;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
   proposedByUser!: Types.ObjectId;
 
   @Prop({ required: true, enum: Priority })

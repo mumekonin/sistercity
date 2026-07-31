@@ -101,35 +101,35 @@ export class CityProfileService {
       throw new ForbiddenException('You can only update your own city profile');
     }
 
-    if (updateDto.basicInfo?.name) {
+    if (updateDto.basicInfo?.name !== undefined) {
       profile.basicInfo.name = updateDto.basicInfo.name;
     }
-    if (updateDto.basicInfo?.region) {
+    if (updateDto.basicInfo?.region !== undefined) {
       profile.basicInfo.region = updateDto.basicInfo.region;
     }
-    if (updateDto.basicInfo?.yearEstablished) {
+    if (updateDto.basicInfo?.yearEstablished !== undefined) {
       profile.basicInfo.yearEstablished = updateDto.basicInfo.yearEstablished;
     }
-    if (updateDto.basicInfo?.landAreaSm2) {
+    if (updateDto.basicInfo?.landAreaSm2 !== undefined) {
       profile.basicInfo.landAreaSm2 = updateDto.basicInfo.landAreaSm2;
     }
-    if (updateDto.basicInfo?.officialWebsite) {
+    if (updateDto.basicInfo?.officialWebsite !== undefined) {
       profile.basicInfo.officialWebsite = updateDto.basicInfo.officialWebsite;
     }
 
-    if (updateDto.population?.total) {
+    if (updateDto.population?.total !== undefined) {
       profile.population.total = updateDto.population.total;
     }
-    if (updateDto.population?.male) {
+    if (updateDto.population?.male !== undefined) {
       profile.population.male = updateDto.population.male;
     }
-    if (updateDto.population?.female) {
+    if (updateDto.population?.female !== undefined) {
       profile.population.female = updateDto.population.female;
     }
-    if (updateDto.population?.youth) {
+    if (updateDto.population?.youth !== undefined) {
       profile.population.youth = updateDto.population.youth;
     }
-    if (updateDto.population?.lastUpdated) {
+    if (updateDto.population?.lastUpdated !== undefined) {
       profile.population.lastUpdated = updateDto.population.lastUpdated;
     }
     // replace full arrays when sent

@@ -132,7 +132,9 @@ export class MessageService {
       .lean();
     if (!updated) throw new NotFoundException('Message not found after save');
 
-    const recipients = await this.resolveMessageRecipients(updated.to as any);
+    const recipients = (
+      await this.resolveMessageRecipients(updated.to as any)
+    ).filter((id) => id.toString() !== currentUser.userId);
     await this.notificationService.createMany(recipients, {
       type: NotificationType.MESSAGE_RECEIVED,
       title: `New message from ${sender.fullName}`,
@@ -141,10 +143,21 @@ export class MessageService {
       priority: updated.priority as unknown as NotificationPriority,
     });
 
-    return this.toMessageResponse(updated, []);
+    return this.toMessageResponse(updated, [], currentUser);
   }
 
-  private toMessageResponse(message: any, thread: any[]): MessageResponse {
+  // `readBy` holds one entry per recipient who has opened the message.
+  private hasBeenReadBy(message: any, currentUser: any): boolean {
+    return (message.readBy ?? []).some(
+      (id: any) => id.toString() === currentUser.userId,
+    );
+  }
+
+  private toMessageResponse(
+    message: any,
+    thread: any[],
+    currentUser: any,
+  ): MessageResponse {
     return {
       id: message._id.toString(),
       referenceNumber: message.referenceNumber,
@@ -172,6 +185,7 @@ export class MessageService {
       })),
       relatedProject: message.relatedProject?.toString() ?? null,
       status: message.status,
+      isRead: this.hasBeenReadBy(message, currentUser),
       readAt: message.readAt,
       responseDeadline: message.responseDeadline,
       isEscalated: message.isEscalated,
@@ -202,6 +216,16 @@ export class MessageService {
       updatedAt: message.updatedAt,
     };
   }
+  // Matches department broadcasts (`to.userId` null) plus messages addressed
+  // to this user specifically, so one officer's mail stays out of another's list.
+  private addressedToUser(currentUser: any) {
+    return [
+      { 'to.userId': null },
+      { 'to.userId': { $exists: false } },
+      { 'to.userId': currentUser.userId },
+    ];
+  }
+
   async getMessages(
     currentUser: any,
     type: string = 'received',
@@ -213,6 +237,7 @@ export class MessageService {
         filter = {
           'to.city': currentUser.city,
           'to.department': currentUser.department,
+          $or: this.addressedToUser(currentUser),
           isArchived: { $in: [false, null, undefined] },
         };
         break;
@@ -227,7 +252,9 @@ export class MessageService {
       case 'urgent':
         filter = {
           'to.city': currentUser.city,
+          'to.department': currentUser.department,
           priority: { $in: [MessagePriority.URGENT, MessagePriority.CRITICAL] },
+          $or: this.addressedToUser(currentUser),
           isArchived: { $in: [false, null, undefined] },
         };
         break;
@@ -236,7 +263,8 @@ export class MessageService {
         filter = {
           'to.city': currentUser.city,
           'to.department': currentUser.department,
-          status: MessageStatus.SENT,
+          readBy: { $ne: new Types.ObjectId(currentUser.userId) },
+          $or: this.addressedToUser(currentUser),
           isArchived: { $in: [false, null, undefined] },
         };
         break;
@@ -244,11 +272,11 @@ export class MessageService {
       default:
         filter = {
           'to.city': currentUser.city,
+          'to.department': currentUser.department,
+          $or: this.addressedToUser(currentUser),
           isArchived: { $in: [false, null, undefined] },
         };
     }
-
-    console.log('filter:', JSON.stringify(filter));
 
     const messages = await this.messageModel
       .find(filter)
@@ -256,10 +284,13 @@ export class MessageService {
       .lean();
     if (!messages || messages.length === 0) return [];
 
-    return messages.map((m) => this.toMessageListResponse(m));
+    return messages.map((m) => this.toMessageListResponse(m, currentUser));
   }
 
-  private toMessageListResponse(message: any): MessageListResponse {
+  private toMessageListResponse(
+    message: any,
+    currentUser: any,
+  ): MessageListResponse {
     return {
       id: message._id.toString(),
       referenceNumber: message.referenceNumber,
@@ -279,6 +310,7 @@ export class MessageService {
         userId: message.to.userId?.toString() ?? null,
       },
       status: message.status,
+      isRead: this.hasBeenReadBy(message, currentUser),
       isEscalated: message.isEscalated,
       responseDeadline: message.responseDeadline,
       createdAt: message.createdAt,
@@ -287,12 +319,17 @@ export class MessageService {
   async getMessageById(id: string, currentUser: any): Promise<MessageResponse> {
     const message = await this.messageModel.findById(id).lean();
     if (!message) throw new NotFoundException('Message not found');
+    // A message with `to.userId` set is addressed to one person; a department
+    // broadcast leaves it null and is readable by that whole department.
+    const isAddressedToMe =
+      message.to.userId != null
+        ? message.to.userId.toString() === currentUser.userId
+        : message.to.city === currentUser.city &&
+          message.to.department === currentUser.department;
+
     const hasAccess =
       message.from.userId.toString() === currentUser.userId ||
-      (message.to.userId &&
-        message.to.userId.toString() === currentUser.userId) ||
-      (message.to.city === currentUser.city &&
-        message.to.department === currentUser.department) ||
+      isAddressedToMe ||
       (currentUser.role === Role.CITY_ADMIN &&
         message.to.city === currentUser.city) ||
       currentUser.role === Role.SUPER_ADMIN;
@@ -300,16 +337,34 @@ export class MessageService {
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this message');
     }
+    // Only an actual addressee marks it read. Oversight viewers (a city admin
+    // outside the department, a super admin) and the sender must not consume the
+    // recipients' unread state.
+    const isSender = message.from.userId.toString() === currentUser.userId;
     if (
-      message.status === MessageStatus.SENT &&
-      message.to.city === currentUser.city
+      isAddressedToMe &&
+      !isSender &&
+      !this.hasBeenReadBy(message, currentUser)
     ) {
+      const firstRead = message.status === MessageStatus.SENT;
       await this.messageModel.findByIdAndUpdate(id, {
-        status: MessageStatus.READ,
-        readAt: new Date(),
+        // Stored as an ObjectId to match how the dashboard counts unread mail;
+        // the schema's reference paths are Mixed, so nothing casts for us.
+        $addToSet: { readBy: new Types.ObjectId(currentUser.userId) },
+        // `status` / `readAt` record the first time anyone opened it, which is
+        // what the sender's "Read" indicator reports.
+        ...(firstRead
+          ? { $set: { status: MessageStatus.READ, readAt: new Date() } }
+          : {}),
       });
-      message.status = MessageStatus.READ;
-      message.readAt = new Date();
+      (message as any).readBy = [
+        ...(message.readBy ?? []),
+        currentUser.userId,
+      ];
+      if (firstRead) {
+        message.status = MessageStatus.READ;
+        message.readAt = new Date();
+      }
     }
 
     const threadIdToSearch = message.threadId || message._id;
@@ -318,7 +373,7 @@ export class MessageService {
       .sort({ createdAt: 1 })
       .lean();
 
-    return this.toMessageResponse(message, thread);
+    return this.toMessageResponse(message, thread, currentUser);
   }
 
   // Reply to Message
@@ -331,9 +386,13 @@ export class MessageService {
     if (!parentMessage) throw new NotFoundException('Message not found');
     const sender = await this.userModel.findById(currentUser.userId);
     if (!sender) throw new NotFoundException('Sender not found');
+    // Same addressee rule as reads: a direct message may only be answered by the
+    // person it was sent to, not by anyone in their department.
     const isRecipient =
-      parentMessage.to.city === currentUser.city &&
-      parentMessage.to.department === currentUser.department;
+      parentMessage.to.userId != null
+        ? parentMessage.to.userId.toString() === currentUser.userId
+        : parentMessage.to.city === currentUser.city &&
+          parentMessage.to.department === currentUser.department;
     if (!isRecipient) {
       throw new ForbiddenException(
         'Only the recipient can reply to this message',
@@ -380,9 +439,9 @@ export class MessageService {
     parentMessage.status = MessageStatus.REPLIED;
     await parentMessage.save();
 
-    const recipients = await this.resolveMessageRecipients(
-      savedReply.to as any,
-    );
+    const recipients = (
+      await this.resolveMessageRecipients(savedReply.to as any)
+    ).filter((id) => id.toString() !== currentUser.userId);
     await this.notificationService.createMany(recipients, {
       type: NotificationType.MESSAGE_RECEIVED,
       title: `${sender.fullName} replied: ${parentMessage.subject}`,
@@ -391,7 +450,7 @@ export class MessageService {
       priority: savedReply.priority as unknown as NotificationPriority,
     });
 
-    return this.toMessageResponse(savedReply, []);
+    return this.toMessageResponse(savedReply, [], currentUser);
   }
   // Update Message
   async updateMessage(
@@ -433,7 +492,7 @@ export class MessageService {
     }
 
     const updated = await message.save();
-    return this.toMessageResponse(updated, []);
+    return this.toMessageResponse(updated, [], currentUser);
   }
 
   // Get Overdue Messages
@@ -450,6 +509,6 @@ export class MessageService {
 
     if (!messages || messages.length === 0) return [];
 
-    return messages.map((m) => this.toMessageListResponse(m));
+    return messages.map((m) => this.toMessageListResponse(m, currentUser));
   }
 }

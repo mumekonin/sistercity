@@ -20,10 +20,11 @@ interface MessageStore {
 
 const fetchCount = async (): Promise<number> => {
   try {
-    // Messages with status SENT targeted at the current user = unread
+    // The endpoint already scopes this to messages the current user has not
+    // read; re-filtering on `status` here would drop ones a colleague opened.
     const res = await api.get('/messages?type=unread');
-    const data: { status: string }[] = res.data;
-    return Array.isArray(data) ? data.filter((m) => m.status === 'SENT').length : 0;
+    const data: unknown = res.data;
+    return Array.isArray(data) ? data.length : 0;
   } catch {
     return 0;
   }

@@ -65,6 +65,9 @@ export interface ProjectResponse {
   aurora: CityAssignmentResponse | null;
   budgetAdama: number;
   budgetAurora: number;
+  /** Whether each city has submitted its plan; a planned budget may legitimately be 0. */
+  adamaPlanned: boolean;
+  auroraPlanned: boolean;
   budgetTotal: number;
   startDate: Date | null;
   endDate: Date | null;

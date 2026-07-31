@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { documentsApi } from '../../api/documents.api';
 import type { DocumentFile } from '../../types/document.types';
+import { AccessLevel, AccessLevelLabel, DocumentCategory } from '../../types/enums';
 
 interface Props {
   onClose: () => void;
   onUploaded: (doc: DocumentFile) => void;
 }
 
-const categories = ['AGREEMENT', 'FINANCIAL', 'REPORT', 'MINUTES', 'LOGISTICS', 'LEGAL', 'TECHNICAL', 'OTHER'];
-const accessLevels = [
-  { value: 'BOTH_CITIES', label: 'Both Cities' },
-  { value: 'CITY_ADMINS', label: 'City Admins Only' },
-  { value: 'DEPARTMENT', label: 'My Department Only' },
-];
+const categories = Object.values(DocumentCategory);
+const accessLevels = Object.values(AccessLevel).map((value) => ({
+  value,
+  label: AccessLevelLabel[value],
+}));
 
 export default function UploadDocumentModal({ onClose, onUploaded }: Props) {
   const [loading, setLoading] = useState(false);
@@ -20,11 +20,19 @@ export default function UploadDocumentModal({ onClose, onUploaded }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    title: string;
+    category: DocumentCategory;
+    description: string;
+    accessLevel: AccessLevel;
+    documentDate: string;
+    expiryDate: string;
+    relatedProject: string;
+  }>({
     title: '',
-    category: 'AGREEMENT',
+    category: DocumentCategory.LEGAL,
     description: '',
-    accessLevel: 'BOTH_CITIES',
+    accessLevel: AccessLevel.BOTH_CITIES,
     documentDate: '',
     expiryDate: '',
     relatedProject: '',
@@ -185,7 +193,7 @@ export default function UploadDocumentModal({ onClose, onUploaded }: Props) {
                 </label>
                 <select
                   value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  onChange={(e) => setForm({ ...form, category: e.target.value as DocumentCategory })}
                   className="w-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition"
                 >
                   {categories.map((cat) => (
@@ -201,7 +209,7 @@ export default function UploadDocumentModal({ onClose, onUploaded }: Props) {
                 </label>
                 <select
                   value={form.accessLevel}
-                  onChange={(e) => setForm({ ...form, accessLevel: e.target.value })}
+                  onChange={(e) => setForm({ ...form, accessLevel: e.target.value as AccessLevel })}
                   className="w-full bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm text-[#1a4a8a] dark:text-white focus:outline-none focus:border-blue-500 transition"
                 >
                   {accessLevels.map((al) => (
