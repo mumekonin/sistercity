@@ -1,4 +1,4 @@
-# Sister City Web Portal — Adama & Aurora
+# Sister City Web Portal  Adama & Aurora
 
 A collaborative digital platform enabling the sister-city partnership between **Adama City** and **Aurora City** to manage joint projects, official communication, shared budgets, documents, events, and public news from a single, role-based portal.
 
