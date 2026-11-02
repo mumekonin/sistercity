@@ -134,11 +134,7 @@ For the full schema and endpoint reference, see the project's API specification 
 
 ---
 
-## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome. Feel free to open an issue or submit a pull request.
-
----
 
 ## 👤 Author
 
